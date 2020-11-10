@@ -29,7 +29,7 @@ message PruneRequest {
 }
 
 message DiskUsageRequest {
-	repeated string filter = 1; 
+	repeated string filter = 1;
 }
 
 message DiskUsageResponse {
@@ -51,17 +51,26 @@ message UsageRecord {
 	repeated string Parents = 12;
 }
 
+// Exporter describes the output exporter
+message Exporter {
+	// Name identifies the exporter
+	string Name = 1;
+	// Attrs specifies exporter configuration
+	map<string, string> Attrs = 2;
+}
+
 message SolveRequest {
 	string Ref = 1;
 	pb.Definition Definition = 2;
-	string Exporter = 3;
-	map<string, string> ExporterAttrs = 4;
+	string ExporterDeprecated = 3;
+	map<string, string> ExporterAttrsDeprecated = 4;
 	string Session = 5;
 	string Frontend = 6;
 	map<string, string> FrontendAttrs = 7;
 	CacheOptions Cache = 8 [(gogoproto.nullable) = false];
 	repeated string Entitlements = 9 [(gogoproto.customtype) = "github.com/moby/buildkit/util/entitlements.Entitlement" ];
 	map<string, pb.Definition> FrontendInputs = 10;
+	repeated Exporter Exporters = 11;
 }
 
 message CacheOptions {
@@ -92,8 +101,14 @@ message CacheOptionsEntry {
 	map<string, string> Attrs = 2;
 }
 
+message ExporterResponse {
+	map<string, string> Response = 1;
+}
+
 message SolveResponse {
-	map<string, string> ExporterResponse = 1;
+	// ExportResponseDeprecated is deprecated since BuildKit v0.11.0.
+	ExporterResponse ExporterResponseDeprecated = 1;
+	repeated ExporterResponse ExportersResponse = 2;
 }
 
 message StatusRequest {

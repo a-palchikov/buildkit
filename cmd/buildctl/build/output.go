@@ -55,12 +55,12 @@ func parseOutputCSV(s string) (client.ExportEntry, error) {
 // ParseOutput parses --output
 func ParseOutput(exports []string) ([]client.ExportEntry, error) {
 	var entries []client.ExportEntry
-	for _, s := range exports {
-		e, err := parseOutputCSV(s)
+	for _, exp := range exports {
+		opts, err := parseOutputCSV(exp)
 		if err != nil {
 			return nil, err
 		}
-		entries = append(entries, e)
+		entries = append(entries, opts)
 	}
 	return entries, nil
 }

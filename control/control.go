@@ -231,6 +231,15 @@ func translateLegacySolveRequest(req *controlapi.SolveRequest) error {
 		req.Cache.Imports = append(req.Cache.Imports, im)
 	}
 	req.Cache.ImportRefsDeprecated = nil
+	// translate single exporter to a slice (v0.11.0)
+	if req.ExporterDeprecated != "" {
+		req.Exporters = append(req.Exporters, &controlapi.Exporter{
+			Name:  req.ExporterDeprecated,
+			Attrs: req.ExporterAttrsDeprecated,
+		})
+	}
+	req.ExporterDeprecated = ""
+	req.ExporterAttrsDeprecated = nil
 	return nil
 }
 
@@ -248,22 +257,24 @@ func (c *Controller) Solve(ctx context.Context, req *controlapi.SolveRequest) (*
 		time.AfterFunc(time.Second, c.throttledGC)
 	}()
 
-	var expi exporter.ExporterInstance
+	var expis []exporter.ExporterInstance
 	// TODO: multiworker
 	// This is actually tricky, as the exporter should come from the worker that has the returned reference. We may need to delay this so that the solver loads this.
 	w, err := c.opt.WorkerController.GetDefault()
 	if err != nil {
 		return nil, err
 	}
-	if req.Exporter != "" {
-		exp, err := w.Exporter(req.Exporter, c.opt.SessionManager)
+
+	for _, out := range req.Exporters {
+		exp, err := w.Exporter(out.Name, c.opt.SessionManager)
 		if err != nil {
 			return nil, err
 		}
-		expi, err = exp.Resolve(ctx, req.ExporterAttrs)
+		expi, err := exp.Resolve(ctx, out.Attrs)
 		if err != nil {
 			return nil, err
 		}
+		expis = append(expis, expi)
 	}
 
 	var (
@@ -306,15 +317,20 @@ func (c *Controller) Solve(ctx context.Context, req *controlapi.SolveRequest) (*
 		FrontendInputs: req.FrontendInputs,
 		CacheImports:   cacheImports,
 	}, llbsolver.ExporterRequest{
-		Exporter:        expi,
+		Exporters:       expis,
 		CacheExporter:   cacheExporter,
 		CacheExportMode: cacheExportMode,
 	}, req.Entitlements)
 	if err != nil {
 		return nil, err
 	}
+
+	resps := make([]*controlapi.ExporterResponse, 0, len(resp.ExportersResponse))
+	for _, resp := range resp.ExportersResponse {
+		resps = append(resps, &controlapi.ExporterResponse{Response: resp})
+	}
 	return &controlapi.SolveResponse{
-		ExporterResponse: resp.ExporterResponse,
+		ExportersResponse: resps,
 	}, nil
 }
 
