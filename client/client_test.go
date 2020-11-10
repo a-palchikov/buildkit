@@ -134,6 +134,7 @@ func TestIntegration(t *testing.T) {
 		testTarExporterWithSocketCopy,
 		testTarExporterSymlink,
 		testMultipleRegistryCacheImportExport,
+		testMultipleExporters,
 		testSourceMap,
 		testSourceMapFromRef,
 		testLazyImagePush,
@@ -257,6 +258,7 @@ func testBridgeNetworking(t *testing.T, sb integration.Sandbox) {
 	_, err = c.Solve(sb.Context(), def, SolveOpt{}, nil)
 	require.Error(t, err)
 }
+
 func testHostNetworking(t *testing.T, sb integration.Sandbox) {
 	if os.Getenv("BUILDKIT_RUN_NETWORK_INTEGRATION_TESTS") == "" {
 		t.SkipNow()
@@ -741,12 +743,14 @@ func testPushByDigest(t *testing.T, sb integration.Sandbox) {
 	_, _, err = contentutil.ProviderFromRef(name + ":latest")
 	require.Error(t, err)
 
-	desc, _, err := contentutil.ProviderFromRef(name + "@" + resp.ExporterResponse[exptypes.ExporterImageDigestKey])
-	require.NoError(t, err)
-
-	require.Equal(t, resp.ExporterResponse[exptypes.ExporterImageDigestKey], desc.Digest.String())
-	require.Equal(t, images.MediaTypeDockerSchema2Manifest, desc.MediaType)
-	require.True(t, desc.Size > 0)
+	require.NotEmpty(t, resp.ExportersResponse)
+	for _, resp := range resp.ExportersResponse {
+		desc, _, err := contentutil.ProviderFromRef(name + "@" + resp.Response[exptypes.ExporterImageDigestKey])
+		require.NoError(t, err)
+		require.Equal(t, resp.Response[exptypes.ExporterImageDigestKey], desc.Digest.String())
+		require.Equal(t, images.MediaTypeDockerSchema2Manifest, desc.MediaType)
+		require.True(t, desc.Size > 0)
+	}
 }
 
 func testSecurityMode(t *testing.T, sb integration.Sandbox) {
@@ -1034,8 +1038,10 @@ func testFrontendImageNaming(t *testing.T, sb integration.Sandbox) {
 
 					resp, err := c.Build(sb.Context(), so, "", frontend, nil)
 					require.NoError(t, err)
-
-					checkImageName[exp](out, imageName, resp.ExporterResponse)
+					require.NotEmpty(t, resp.ExportersResponse)
+					for _, resp := range resp.ExportersResponse {
+						checkImageName[exp](out, imageName, resp.Response)
+					}
 				})
 			}
 		})
@@ -1891,6 +1897,58 @@ func testUser(t *testing.T, sb integration.Sandbox) {
 	checkAllReleasable(t, c, sb, true)
 }
 
+func testMultipleExporters(t *testing.T, sb integration.Sandbox) {
+	skipDockerd(t, sb)
+	requiresLinux(t)
+
+	c, err := New(sb.Context(), sb.Address())
+	require.NoError(t, err)
+	defer c.Close()
+
+	def, err := llb.Image("busybox").Marshal(context.TODO())
+	require.NoError(t, err)
+
+	destDir1, destDir2 := t.TempDir(), t.TempDir()
+
+	_, err = c.Solve(sb.Context(), def, SolveOpt{
+		Exports: []ExportEntry{
+			{
+				Type:      ExporterLocal,
+				OutputDir: destDir1,
+			},
+			{
+				Type:      ExporterLocal,
+				OutputDir: destDir2,
+			},
+		},
+	}, nil)
+	require.Error(t, err)
+
+	registry, err := sb.NewRegistry()
+	if errors.Is(err, integration.ErrRequirements) {
+		t.Skip(err.Error())
+	}
+	require.NoError(t, err)
+
+	target := registry + "/buildkit/build/exporter:image"
+
+	_, err = c.Solve(sb.Context(), def, SolveOpt{
+		Exports: []ExportEntry{
+			{
+				Type:      ExporterLocal,
+				OutputDir: destDir1,
+			},
+			{
+				Type: ExporterImage,
+				Attrs: map[string]string{
+					"name": target,
+				},
+			},
+		},
+	}, nil)
+	require.NoError(t, err)
+}
+
 func testOCIExporter(t *testing.T, sb integration.Sandbox) {
 	integration.SkipIfDockerd(t, sb, "oci exporter")
 	requiresLinux(t)
@@ -2019,10 +2077,13 @@ func testFrontendMetadataReturn(t *testing.T, sb integration.Sandbox) {
 		},
 	}, "", frontend, nil)
 	require.NoError(t, err)
-	require.Contains(t, res.ExporterResponse, "frontend.returned")
-	require.Equal(t, res.ExporterResponse["frontend.returned"], "true")
-	require.NotContains(t, res.ExporterResponse, "not-frontend.not-returned")
-	require.NotContains(t, res.ExporterResponse, "frontendnot.returned.either")
+	require.NotEmpty(t, res.ExportersResponse)
+	for _, resp := range res.ExportersResponse {
+		require.Contains(t, resp.Response, "frontend.returned")
+		require.Equal(t, resp.Response["frontend.returned"], "true")
+		require.NotContains(t, resp.Response, "not-frontend.not-returned")
+		require.NotContains(t, resp.Response, "frontendnot.returned.either")
+	}
 	checkAllReleasable(t, c, sb, true)
 }
 
@@ -2117,12 +2178,15 @@ func testExporterTargetExists(t *testing.T, sb integration.Sandbox) {
 		},
 	}, nil)
 	require.NoError(t, err)
-	dgst := res.ExporterResponse[exptypes.ExporterImageDigestKey]
+	require.NotEmpty(t, res.ExportersResponse)
+	for _, resp := range res.ExportersResponse {
+		dgst := resp.Response[exptypes.ExporterImageDigestKey]
 
-	require.True(t, strings.HasPrefix(dgst, "sha256:"))
-	require.Equal(t, dgst, mdDgst)
+		require.True(t, strings.HasPrefix(dgst, "sha256:"))
+		require.Equal(t, dgst, mdDgst)
+		require.True(t, strings.HasPrefix(resp.Response[exptypes.ExporterImageConfigDigestKey], "sha256:"))
 
-	require.True(t, strings.HasPrefix(res.ExporterResponse[exptypes.ExporterImageConfigDigestKey], "sha256:"))
+	}
 }
 
 func testTarExporterWithSocket(t *testing.T, sb integration.Sandbox) {
@@ -2445,7 +2509,7 @@ func testBuildExportWithUncompressed(t *testing.T, sb integration.Sandbox) {
 	dt, err := content.ReadBlob(ctx, img.ContentStore(), img.Target())
 	require.NoError(t, err)
 
-	var mfst = struct {
+	mfst := struct {
 		MediaType string `json:"mediaType,omitempty"`
 		ocispecs.Manifest
 	}{}
@@ -2690,6 +2754,7 @@ func testPullZstdImage(t *testing.T, sb integration.Sandbox) {
 	require.NoError(t, err)
 	require.Equal(t, dt, []byte("zstd"))
 }
+
 func testBuildPushAndValidate(t *testing.T, sb integration.Sandbox) {
 	integration.SkipIfDockerd(t, sb, "direct push")
 	requiresLinux(t)
@@ -2830,7 +2895,7 @@ func testBuildPushAndValidate(t *testing.T, sb integration.Sandbox) {
 	dt, err = content.ReadBlob(ctx, img.ContentStore(), img.Target())
 	require.NoError(t, err)
 
-	var mfst = struct {
+	mfst := struct {
 		MediaType string `json:"mediaType,omitempty"`
 		ocispecs.Manifest
 	}{}
@@ -3668,7 +3733,8 @@ func testBasicCacheImportExport(t *testing.T, sb integration.Sandbox, cacheOptio
 			{
 				Type:      ExporterLocal,
 				OutputDir: destDir,
-			}},
+			},
+		},
 		CacheImports: cacheOptionsEntryImport,
 	}, nil)
 	require.NoError(t, err)
@@ -3788,7 +3854,8 @@ func testBasicInlineCacheImportExport(t *testing.T, sb integration.Sandbox) {
 	}, nil)
 	require.NoError(t, err)
 
-	dgst, ok := resp.ExporterResponse[exptypes.ExporterImageDigestKey]
+	require.NotEmpty(t, resp.ExportersResponse)
+	dgst, ok := resp.ExportersResponse[0].Response[exptypes.ExporterImageDigestKey]
 	require.Equal(t, ok, true)
 
 	unique, err := readFileInImage(sb.Context(), c, target+"@"+dgst, "/unique")
@@ -3824,7 +3891,8 @@ func testBasicInlineCacheImportExport(t *testing.T, sb integration.Sandbox) {
 	}, nil)
 	require.NoError(t, err)
 
-	dgst2, ok := resp.ExporterResponse[exptypes.ExporterImageDigestKey]
+	require.NotEmpty(t, resp.ExportersResponse)
+	dgst2, ok := resp.ExportersResponse[0].Response[exptypes.ExporterImageDigestKey]
 	require.Equal(t, ok, true)
 
 	require.Equal(t, dgst, dgst2)
@@ -3862,7 +3930,8 @@ func testBasicInlineCacheImportExport(t *testing.T, sb integration.Sandbox) {
 	}, nil)
 	require.NoError(t, err)
 
-	dgst2uncompress, ok := resp.ExporterResponse[exptypes.ExporterImageDigestKey]
+	require.NotEmpty(t, resp.ExportersResponse)
+	dgst2uncompress, ok := resp.ExportersResponse[0].Response[exptypes.ExporterImageDigestKey]
 	require.Equal(t, ok, true)
 
 	// dgst2uncompress != dgst, because the compression type is different
@@ -3893,7 +3962,8 @@ func testBasicInlineCacheImportExport(t *testing.T, sb integration.Sandbox) {
 	}, nil)
 	require.NoError(t, err)
 
-	dgst3, ok := resp.ExporterResponse[exptypes.ExporterImageDigestKey]
+	require.NotEmpty(t, resp.ExportersResponse)
+	dgst3, ok := resp.ExportersResponse[0].Response[exptypes.ExporterImageDigestKey]
 	require.Equal(t, ok, true)
 
 	// dgst3 != dgst, because inline cache is not exported for dgst3
@@ -4529,7 +4599,7 @@ func testSourceMapFromRef(t *testing.T, sb integration.Sandbox) {
 
 	frontend := func(ctx context.Context, c gateway.Client) (*gateway.Result, error) {
 		st := llb.Scratch().File(
-			llb.Mkdir("foo/bar", 0600), //fails because /foo doesn't exist
+			llb.Mkdir("foo/bar", 0600), // fails because /foo doesn't exist
 			sm.Location([]*pb.Range{{Start: pb.Position{Line: 3, Character: 1}}}),
 		)
 
@@ -5786,8 +5856,10 @@ func (*secModeInsecure) UpdateConfigFile(in string) string {
 	return in + "\n\ninsecure-entitlements = [\"security.insecure\"]\n"
 }
 
-var securitySandbox integration.ConfigUpdater = &secModeSandbox{}
-var securityInsecure integration.ConfigUpdater = &secModeInsecure{}
+var (
+	securitySandbox  integration.ConfigUpdater = &secModeSandbox{}
+	securityInsecure integration.ConfigUpdater = &secModeInsecure{}
+)
 
 type netModeHost struct{}
 
@@ -5801,8 +5873,10 @@ func (*netModeDefault) UpdateConfigFile(in string) string {
 	return in
 }
 
-var hostNetwork integration.ConfigUpdater = &netModeHost{}
-var defaultNetwork integration.ConfigUpdater = &netModeDefault{}
+var (
+	hostNetwork    integration.ConfigUpdater = &netModeHost{}
+	defaultNetwork integration.ConfigUpdater = &netModeDefault{}
+)
 
 func fixedWriteCloser(wc io.WriteCloser) func(map[string]string) (io.WriteCloser, error) {
 	return func(map[string]string) (io.WriteCloser, error) {

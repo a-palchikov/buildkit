@@ -353,7 +353,7 @@ func normalizedNames(name string) ([]string, error) {
 		return nil, nil
 	}
 	names := strings.Split(name, ",")
-	var tagNames = make([]string, len(names))
+	tagNames := make([]string, len(names))
 	for i, name := range names {
 		parsed, err := reference.ParseNormalizedNamed(name)
 		if err != nil {

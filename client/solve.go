@@ -77,7 +77,7 @@ func (c *Client) Solve(ctx context.Context, def *llb.Definition, opt SolveOpt, s
 
 type runGatewayCB func(ref string, s *session.Session, opts map[string]string) error
 
-func (c *Client) solve(ctx context.Context, def *llb.Definition, runGateway runGatewayCB, opt SolveOpt, statusChan chan *SolveStatus) (*SolveResponse, error) {
+func (c *Client) solve(ctx context.Context, def *llb.Definition, runGateway runGatewayCB, opt SolveOpt, statusChan chan *SolveStatus) (result *SolveResponse, err error) {
 	if def != nil && runGateway != nil {
 		return nil, errors.New("invalid with def and cb")
 	}
@@ -114,14 +114,6 @@ func (c *Client) solve(ctx context.Context, def *llb.Definition, runGateway runG
 		return nil, err
 	}
 
-	var ex ExportEntry
-	if len(opt.Exports) > 1 {
-		return nil, errors.New("currently only single Exports can be specified")
-	}
-	if len(opt.Exports) == 1 {
-		ex = opt.Exports[0]
-	}
-
 	if !opt.SessionPreInitialized {
 		if len(syncedDirs) > 0 {
 			s.Allow(filesync.NewFSSyncProvider(syncedDirs))
@@ -131,29 +123,40 @@ func (c *Client) solve(ctx context.Context, def *llb.Definition, runGateway runG
 			s.Allow(a)
 		}
 
-		switch ex.Type {
-		case ExporterLocal:
-			if ex.Output != nil {
-				return nil, errors.New("output file writer is not supported by local exporter")
-			}
-			if ex.OutputDir == "" {
-				return nil, errors.New("output directory is required for local exporter")
-			}
-			s.Allow(filesync.NewFSSyncTargetDir(ex.OutputDir))
-		case ExporterOCI, ExporterDocker, ExporterTar:
-			if ex.OutputDir != "" {
-				return nil, errors.Errorf("output directory %s is not supported by %s exporter", ex.OutputDir, ex.Type)
-			}
-			if ex.Output == nil {
-				return nil, errors.Errorf("output file writer is required for %s exporter", ex.Type)
-			}
-			s.Allow(filesync.NewFSSyncTarget(ex.Output))
-		default:
-			if ex.Output != nil {
-				return nil, errors.Errorf("output file writer is not supported by %s exporter", ex.Type)
-			}
-			if ex.OutputDir != "" {
-				return nil, errors.Errorf("output directory %s is not supported by %s exporter", ex.OutputDir, ex.Type)
+		exporters := map[string]struct{}{}
+		for _, exp := range opt.Exports {
+			switch exp.Type {
+			case ExporterLocal:
+				if _, ok := exporters[exp.Type]; ok {
+					return nil, errors.New("using multiple ExporterLocal is not supported")
+				}
+				if exp.Output != nil {
+					return nil, errors.New("output file writer is not supported by local exporter")
+				}
+				if exp.OutputDir == "" {
+					return nil, errors.New("output directory is required for local exporter")
+				}
+				exporters[exp.Type] = struct{}{}
+				s.Allow(filesync.NewFSSyncTargetDir(exp.OutputDir))
+			case ExporterOCI, ExporterDocker, ExporterTar:
+				if _, ok := exporters[exp.Type]; ok {
+					return nil, errors.Errorf("using multiple %s is not supported", exp.Type)
+				}
+				if exp.OutputDir != "" {
+					return nil, errors.Errorf("output directory %s is not supported by %s exporter", exp.OutputDir, exp.Type)
+				}
+				if exp.Output == nil {
+					return nil, errors.Errorf("output file writer is required for %s exporter", exp.Type)
+				}
+				exporters[exp.Type] = struct{}{}
+				s.Allow(filesync.NewFSSyncTarget(exp.Output))
+			default:
+				if exp.Output != nil {
+					return nil, errors.Errorf("output file writer is not supported by %s exporter", exp.Type)
+				}
+				if exp.OutputDir != "" {
+					return nil, errors.Errorf("output directory %s is not supported by %s exporter", exp.OutputDir, exp.Type)
+				}
 			}
 		}
 
@@ -178,7 +181,6 @@ func (c *Client) solve(ctx context.Context, def *llb.Definition, runGateway runG
 	}
 
 	solveCtx, cancelSolve := context.WithCancel(ctx)
-	var res *SolveResponse
 	eg.Go(func() error {
 		ctx := solveCtx
 		defer cancelSolve()
@@ -205,11 +207,18 @@ func (c *Client) solve(ctx context.Context, def *llb.Definition, runGateway runG
 			frontendInputs[key] = def.ToPB()
 		}
 
+		exporters := make([]*controlapi.Exporter, 0, len(opt.Exports))
+		for _, exp := range opt.Exports {
+			exporters = append(exporters, &controlapi.Exporter{
+				Name:  exp.Type,
+				Attrs: exp.Attrs,
+			})
+		}
+
 		resp, err := c.controlClient().Solve(ctx, &controlapi.SolveRequest{
 			Ref:            ref,
 			Definition:     pbd,
-			Exporter:       ex.Type,
-			ExporterAttrs:  ex.Attrs,
+			Exporters:      exporters,
 			Session:        s.ID(),
 			Frontend:       opt.Frontend,
 			FrontendAttrs:  opt.FrontendAttrs,
@@ -220,8 +229,14 @@ func (c *Client) solve(ctx context.Context, def *llb.Definition, runGateway runG
 		if err != nil {
 			return errors.Wrap(err, "failed to solve")
 		}
-		res = &SolveResponse{
-			ExporterResponse: resp.ExporterResponse,
+
+		var exportersResponse []map[string]string
+		for _, resp := range resp.ExportersResponse {
+			exportersResponse = append(exportersResponse, resp.Response)
+		}
+
+		result = &SolveResponse{
+			ExportersResponse: exportersResponse,
 		}
 		return nil
 	})
@@ -318,18 +333,20 @@ func (c *Client) solve(ctx context.Context, def *llb.Definition, runGateway runG
 	}
 	// Update index.json of exported cache content store
 	// FIXME(AkihiroSuda): dedupe const definition of cache/remotecache.ExporterResponseManifestDesc = "cache.manifest"
-	if manifestDescJSON := res.ExporterResponse["cache.manifest"]; manifestDescJSON != "" {
-		var manifestDesc ocispecs.Descriptor
-		if err = json.Unmarshal([]byte(manifestDescJSON), &manifestDesc); err != nil {
-			return nil, err
-		}
-		for indexJSONPath, tag := range cacheOpt.indicesToUpdate {
-			if err = ociindex.PutDescToIndexJSONFileLocked(indexJSONPath, manifestDesc, tag); err != nil {
+	for _, resp := range result.ExportersResponse {
+		if manifestDescJSON := resp["cache.manifest"]; manifestDescJSON != "" {
+			var manifestDesc ocispecs.Descriptor
+			if err = json.Unmarshal([]byte(manifestDescJSON), &manifestDesc); err != nil {
 				return nil, err
+			}
+			for indexJSONPath, tag := range cacheOpt.indicesToUpdate {
+				if err = ociindex.PutDescToIndexJSONFileLocked(indexJSONPath, manifestDesc, tag); err != nil {
+					return nil, err
+				}
 			}
 		}
 	}
-	return res, nil
+	return result, nil
 }
 
 func prepareSyncedDirs(def *llb.Definition, localDirs map[string]string) ([]filesync.SyncedDir, error) {

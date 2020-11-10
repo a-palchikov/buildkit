@@ -293,13 +293,13 @@ func buildAction(clicontext *cli.Context) error {
 		if err != nil {
 			return err
 		}
-		for k, v := range resp.ExporterResponse {
-			logrus.Debugf("exporter response: %s=%s", k, v)
+		for k, v := range resp.ExportersResponse {
+			logrus.Debugf("exporter response: %d=%s", k, v)
 		}
 
 		metadataFile := clicontext.String("metadata-file")
-		if metadataFile != "" && resp.ExporterResponse != nil {
-			if err := writeMetadataFile(metadataFile, resp.ExporterResponse); err != nil {
+		if metadataFile != "" && len(resp.ExportersResponse) != 0 {
+			if err := writeMetadataFile(metadataFile, resp.ExportersResponse); err != nil {
 				return err
 			}
 		}
@@ -315,10 +315,27 @@ func buildAction(clicontext *cli.Context) error {
 	return eg.Wait()
 }
 
-func writeMetadataFile(filename string, exporterResponse map[string]string) error {
-	var err error
+func writeMetadataFile(filename string, exportersResponse []map[string]string) (err error) {
+	result := make([]map[string]interface{}, 0, len(exportersResponse))
+	for _, exp := range exportersResponse {
+		result = append(result, marshalExporterMetadata(exp))
+	}
+	var b []byte
+	if len(result) == 1 {
+		// Keep the old metadata file format
+		b, err = json.MarshalIndent(result[0], "", "  ")
+	} else {
+		b, err = json.MarshalIndent(result, "", "  ")
+	}
+	if err != nil {
+		return err
+	}
+	return continuity.AtomicWriteFile(filename, b, 0666)
+}
+
+func marshalExporterMetadata(exp map[string]string) map[string]interface{} {
 	out := make(map[string]interface{})
-	for k, v := range exporterResponse {
+	for k, v := range exp {
 		dt, err := base64.StdEncoding.DecodeString(v)
 		if err != nil {
 			out[k] = v
@@ -331,9 +348,5 @@ func writeMetadataFile(filename string, exporterResponse map[string]string) erro
 		}
 		out[k] = json.RawMessage(dt)
 	}
-	b, err := json.MarshalIndent(out, "", "  ")
-	if err != nil {
-		return err
-	}
-	return continuity.AtomicWriteFile(filename, b, 0666)
+	return out
 }
