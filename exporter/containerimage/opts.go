@@ -5,6 +5,7 @@ import (
 	"time"
 
 	cacheconfig "github.com/moby/buildkit/cache/config"
+	"github.com/moby/buildkit/exporter/containerimage/exptypes"
 	"github.com/moby/buildkit/exporter/util/epoch"
 	"github.com/moby/buildkit/util/compression"
 	"github.com/pkg/errors"
@@ -32,6 +33,7 @@ type ImageCommitOpts struct {
 	BuildInfoAttrs bool
 	Annotations    AnnotationsGroup
 	Epoch          *time.Time
+	InlineCache    exptypes.InlineCache
 
 	ForceInlineAttestations bool // force inline attestations to be attached
 }

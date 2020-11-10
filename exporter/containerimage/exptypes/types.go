@@ -10,7 +10,6 @@ const (
 	ExporterImageConfigKey       = "containerimage.config"
 	ExporterImageConfigDigestKey = "containerimage.config.digest"
 	ExporterImageDescriptorKey   = "containerimage.descriptor"
-	ExporterInlineCache          = "containerimage.inlinecache"
 	ExporterBuildInfo            = "containerimage.buildinfo"
 	ExporterPlatformsKey         = "refs.platforms"
 	ExporterEpochKey             = "source.date.epoch"
@@ -20,7 +19,6 @@ const (
 // a platform to become platform specific
 var KnownRefMetadataKeys = []string{
 	ExporterImageConfigKey,
-	ExporterInlineCache,
 	ExporterBuildInfo,
 }
 
@@ -31,4 +29,10 @@ type Platforms struct {
 type Platform struct {
 	ID       string
 	Platform ocispecs.Platform
+}
+
+type InlineCache struct {
+	Cache []byte
+	// Platforms maps platform -> inline cache
+	Platforms map[string][]byte
 }

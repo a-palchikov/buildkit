@@ -142,8 +142,7 @@ func (ic *ImageWriter) Commit(ctx context.Context, inp *exporter.Source, session
 		}
 
 		config := exptypes.ParseKey(inp.Metadata, exptypes.ExporterImageConfigKey, p)
-		inlineCache := exptypes.ParseKey(inp.Metadata, exptypes.ExporterInlineCache, p)
-		mfstDesc, configDesc, err := ic.commitDistributionManifest(ctx, opts, ref, config, &remotes[0], annotations, inlineCache, dtbi, opts.Epoch, session.NewGroup(sessionID))
+		mfstDesc, configDesc, err := ic.commitDistributionManifest(ctx, opts, ref, config, &remotes[0], annotations, opts.InlineCache.Cache, dtbi, opts.Epoch, session.NewGroup(sessionID))
 		if err != nil {
 			return nil, err
 		}
@@ -200,7 +199,8 @@ func (ic *ImageWriter) Commit(ctx context.Context, inp *exporter.Source, session
 			return nil, errors.Errorf("failed to find ref for ID %s", p.ID)
 		}
 		config := exptypes.ParseKey(inp.Metadata, exptypes.ExporterImageConfigKey, p)
-		inlineCache := exptypes.ParseKey(inp.Metadata, exptypes.ExporterInlineCache, p)
+		// FIXME(dima)
+		//inlineCache := exptypes.ParseKey(inp.Metadata, exptypes.ExporterInlineCache, p)
 
 		var dtbi []byte
 		if opts.BuildInfo {
@@ -218,7 +218,7 @@ func (ic *ImageWriter) Commit(ctx context.Context, inp *exporter.Source, session
 			}
 		}
 
-		desc, _, err := ic.commitDistributionManifest(ctx, opts, r, config, remote, opts.Annotations.Platform(&p.Platform), inlineCache, dtbi, opts.Epoch, session.NewGroup(sessionID))
+		desc, _, err := ic.commitDistributionManifest(ctx, opts, r, config, remote, opts.Annotations.Platform(&p.Platform), opts.InlineCache.Platforms[p.ID], dtbi, opts.Epoch, session.NewGroup(sessionID))
 		if err != nil {
 			return nil, err
 		}

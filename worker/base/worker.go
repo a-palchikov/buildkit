@@ -374,7 +374,7 @@ func (w *Worker) Prune(ctx context.Context, ch chan client.UsageInfo, opt ...cli
 	return w.CacheMgr.Prune(ctx, ch, opt...)
 }
 
-func (w *Worker) Exporter(name string, sm *session.Manager) (exporter.Exporter, error) {
+func (w *Worker) Exporter(name, id string, sm *session.Manager) (exporter.Exporter, error) {
 	switch name {
 	case client.ExporterImage:
 		return imageexporter.New(imageexporter.Opt{
@@ -391,6 +391,7 @@ func (w *Worker) Exporter(name string, sm *session.Manager) (exporter.Exporter, 
 	case client.ExporterTar:
 		return tarexporter.New(tarexporter.Opt{
 			SessionManager: sm,
+			ID:             id,
 		})
 	case client.ExporterOCI:
 		return ociexporter.New(ociexporter.Opt{
@@ -398,6 +399,7 @@ func (w *Worker) Exporter(name string, sm *session.Manager) (exporter.Exporter, 
 			ImageWriter:    w.imageWriter,
 			Variant:        ociexporter.VariantOCI,
 			LeaseManager:   w.LeaseManager(),
+			ID:             id,
 		})
 	case client.ExporterDocker:
 		return ociexporter.New(ociexporter.Opt{
@@ -405,6 +407,7 @@ func (w *Worker) Exporter(name string, sm *session.Manager) (exporter.Exporter, 
 			ImageWriter:    w.imageWriter,
 			Variant:        ociexporter.VariantDocker,
 			LeaseManager:   w.LeaseManager(),
+			ID:             id,
 		})
 	default:
 		return nil, errors.Errorf("exporter %q could not be found", name)
