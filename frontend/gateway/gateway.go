@@ -5,7 +5,9 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	stdlog "log"
 	"net"
+	"net/http"
 	"os"
 	"path/filepath"
 	"strconv"
@@ -1388,8 +1390,39 @@ func serve(ctx context.Context, grpcServer *grpc.Server, conn net.Conn) {
 		conn.Close()
 	}()
 	bklog.G(ctx).Debugf("serving grpc connection")
-	(&http2.Server{}).ServeConn(conn, &http2.ServeConnOpts{Handler: grpcServer})
+	logger := bklog.G(ctx).Error
+	(&http2.Server{}).ServeConn(conn, &http2.ServeConnOpts{
+		Handler: grpcServer,
+		BaseConfig: &http.Server{
+			ErrorLog: NewStdlogger(logger, "frontend:grpc"),
+		},
+	})
 }
+
+// NewStdlogger creates a new stdlib logger that uses the specified leveled logger
+// for output and the given component as a logging prefix.
+func NewStdlogger(logger LeveledOutputFunc, component string) *stdlog.Logger {
+	return stdlog.New(&stdlogAdapter{
+		log: logger,
+	}, component, stdlog.LstdFlags)
+}
+
+// Write writes the specified buffer p to the underlying leveled logger.
+// Implements io.Writer
+func (r *stdlogAdapter) Write(p []byte) (n int, err error) {
+	r.log(string(p))
+	return len(p), nil
+}
+
+// stdlogAdapter is an io.Writer that writes into an instance
+// of logrus.Logger
+type stdlogAdapter struct {
+	log LeveledOutputFunc
+}
+
+// LeveledOutputFunc describes a function that emits given
+// arguments at a specific level to an underlying logger
+type LeveledOutputFunc func(args ...interface{})
 
 type markTypeFrontend struct{}
 
