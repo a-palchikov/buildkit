@@ -669,9 +669,7 @@ func (t *Transport) newClientConn(c net.Conn, singleUse bool) (*ClientConn, erro
 		cc.idleTimeout = d
 		cc.idleTimer = time.AfterFunc(d, cc.onIdleTimeout)
 	}
-	if VerboseLogs {
-		t.vlogf("http2: Transport creating client conn %p to %v", cc, c.RemoteAddr())
-	}
+	t.vlogf("http2: Transport creating client conn %p to %v", cc, c.RemoteAddr())
 
 	cc.cond = sync.NewCond(&cc.mu)
 	cc.flow.add(int32(initialWindowSize))
@@ -719,6 +717,7 @@ func (t *Transport) newClientConn(c net.Conn, singleUse bool) (*ClientConn, erro
 	cc.bw.Flush()
 	if cc.werr != nil {
 		cc.Close()
+		t.vlogf("http2: Transport failed to write preface to %v: %v", c.RemoteAddr(), cc.werr)
 		return nil, cc.werr
 	}
 

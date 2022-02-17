@@ -1425,7 +1425,7 @@ func serve(ctx context.Context, grpcServer *grpc.Server, conn net.Conn) {
 func NewStdlogger(logger LeveledOutputFunc, component string) *stdlog.Logger {
 	return stdlog.New(&stdlogAdapter{
 		log: logger,
-	}, component, stdlog.LstdFlags)
+	}, component, stdlog.Ldate|stdlog.Ltime|stdlog.LUTC|stdlog.Lmicroseconds)
 }
 
 // Write writes the specified buffer p to the underlying leveled logger.
