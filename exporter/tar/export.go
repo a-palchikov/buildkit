@@ -21,7 +21,6 @@ import (
 	"github.com/moby/buildkit/util/compression"
 	"github.com/moby/buildkit/util/progress"
 	"github.com/pkg/errors"
-	"github.com/sirupsen/logrus"
 	"github.com/tonistiigi/fsutil"
 	fstypes "github.com/tonistiigi/fsutil/types"
 )
@@ -216,19 +215,15 @@ func (e *localExporterInstance) Export(ctx context.Context, inp exporter.Source,
 	comp := e.compression()
 	switch comp.Type {
 	case compression.Zstd:
-		logrus.Info("Compressing with zstd")
 		w, err = zstdWriter(comp, w)
 		if err != nil {
 			return nil, err
 		}
 	case compression.Gzip:
-		logrus.Info("Compressing with gzip")
 		w, err = gzipWriter(comp, w)
 		if err != nil {
 			return nil, err
 		}
-	case compression.Uncompressed:
-		logrus.Info("Storing uncompressed")
 	}
 
 	report := oneOffProgress(ctx, "sending tarball")
