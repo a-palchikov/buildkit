@@ -1385,7 +1385,7 @@ func (sc *serverConn) processFrameFromReader(res readFrameResult) bool {
 		}
 	} else {
 		f := res.f
-		if VerboseLogs {
+		if logFrameReads {
 			sc.vlogf("http2: server read frame %v", summarizeFrame(f))
 		}
 		err = sc.processFrame(f)
