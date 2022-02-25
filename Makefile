@@ -1,5 +1,6 @@
 prefix=/usr/local
 bindir=$(prefix)/bin
+version?=$(shell hack/version.sh)
 
 binaries: FORCE
 	hack/binaries
@@ -8,6 +9,12 @@ images: FORCE
 # moby/buildkit:local and moby/buildkit:local-rootless are created on Docker
 	hack/images local moby/buildkit
 	TARGET=rootless hack/images local moby/buildkit
+
+dev-binaries: FORCE
+	PLATFORMS="darwin/amd64" hack/binaries
+
+dev-images: FORCE
+	PLATFORMS="linux/amd64" hack/images "debug-$(version)" moby/buildkit
 
 install: FORCE
 	mkdir -p $(DESTDIR)$(bindir)
