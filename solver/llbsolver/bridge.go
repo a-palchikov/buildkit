@@ -27,6 +27,7 @@ import (
 	"github.com/moby/buildkit/util/progress"
 	"github.com/moby/buildkit/worker"
 	digest "github.com/opencontainers/go-digest"
+	ocispecs "github.com/opencontainers/image-spec/specs-go/v1"
 	"github.com/pkg/errors"
 )
 
@@ -134,6 +135,34 @@ func (b *llbBridge) loadResult(ctx context.Context, def *pb.Definition, cacheImp
 		return nil, nil, err
 	}
 	return res, bi, nil
+}
+
+func formatImageDesc(d ocispecs.Descriptor) string {
+	var b strings.Builder
+	fmt.Fprint(&b, "ImageSpec(")
+	fmt.Fprint(&b, "type=", d.MediaType)
+	fmt.Fprint(&b, ",digest=", d.Digest)
+	fmt.Fprint(&b, ",size=", d.Size)
+	fmt.Fprint(&b, ",urls=", d.URLs)
+	fmt.Fprint(&b, ",annotations=", d.Annotations)
+	fmt.Fprint(&b, ",platform=", formatImagePlatform(d.Platform))
+	fmt.Fprint(&b, ")")
+	return b.String()
+}
+
+func formatImagePlatform(p *ocispecs.Platform) string {
+	if p == nil {
+		return "<nil>"
+	}
+	var b strings.Builder
+	fmt.Fprint(&b, "ImagePlatform(")
+	fmt.Fprint(&b, "arch=", p.Architecture)
+	fmt.Fprint(&b, ",os=", p.OS)
+	fmt.Fprint(&b, ",osver=", p.OSVersion)
+	fmt.Fprint(&b, ",feats=", p.OSFeatures)
+	fmt.Fprint(&b, ",variant=", p.Variant)
+	fmt.Fprint(&b, ")")
+	return b.String()
 }
 
 func (b *llbBridge) Solve(ctx context.Context, req frontend.SolveRequest, sid string) (res *frontend.Result, err error) {

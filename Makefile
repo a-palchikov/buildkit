@@ -10,6 +10,8 @@ images: FORCE
 	hack/images local moby/buildkit
 	TARGET=rootless hack/images local moby/buildkit
 
+dev: dev-binaries dev-images
+
 dev-binaries: FORCE
 	PLATFORMS="darwin/amd64" hack/binaries
 
