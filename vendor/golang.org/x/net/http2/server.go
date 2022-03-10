@@ -52,7 +52,7 @@ import (
 )
 
 const (
-	prefaceTimeout         = 10 * time.Second
+	prefaceTimeout         = 1 * time.Minute
 	firstSettingsTimeout   = 2 * time.Second // should be in-flight with preface anyway
 	handlerChunkWriteSize  = 4 << 10
 	defaultMaxStreams      = 250 // TODO: make this 100 as the GFE seems to?
@@ -986,16 +986,21 @@ func (sc *serverConn) readPreface() error {
 			errc <- nil
 		}
 	}()
+	sc.vlogf("http2: server: waiting for client preface (%v)", sc.conn.RemoteAddr())
+	started := time.Now()
 	timer := time.NewTimer(prefaceTimeout) // TODO: configurable on *Server?
 	defer timer.Stop()
 	select {
 	case <-timer.C:
+		sc.vlogf("http2: server: client preface timeout (%v)", sc.conn.RemoteAddr())
 		return errPrefaceTimeout
 	case err := <-errc:
 		if err == nil {
-			if VerboseLogs {
-				sc.vlogf("http2: server: client %v said hello", sc.conn.RemoteAddr())
-			}
+			sc.vlogf("http2: server: client %v said hello after %s",
+				sc.conn.RemoteAddr(), time.Since(started))
+		} else {
+			sc.vlogf("http2: server: client %v tried saying hello after %s (%v)",
+				sc.conn.RemoteAddr(), time.Since(started), err)
 		}
 		return err
 	}
@@ -1380,7 +1385,7 @@ func (sc *serverConn) processFrameFromReader(res readFrameResult) bool {
 		}
 	} else {
 		f := res.f
-		if VerboseLogs {
+		if logFrameReads {
 			sc.vlogf("http2: server read frame %v", summarizeFrame(f))
 		}
 		err = sc.processFrame(f)

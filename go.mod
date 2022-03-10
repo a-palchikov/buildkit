@@ -124,4 +124,8 @@ require (
 	gotest.tools/v3 v3.0.3 // indirect
 )
 
-replace github.com/docker/docker => github.com/docker/docker v20.10.3-0.20220224222438-c78f6963a1c0+incompatible
+replace (
+	github.com/containerd/containerd => github.com/a-palchikov/containerd v0.0.0-20220310133909-d47881ac77d3
+	github.com/docker/docker => github.com/docker/docker v20.10.3-0.20220224222438-c78f6963a1c0+incompatible
+	golang.org/x/net => github.com/a-palchikov/net v0.0.0-20220223143411-a4a8547bb557
+)

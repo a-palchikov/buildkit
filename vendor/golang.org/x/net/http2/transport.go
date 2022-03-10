@@ -303,6 +303,13 @@ type ClientConn struct {
 	henc *hpack.Encoder
 }
 
+func (r *ClientConn) String() string {
+	var b strings.Builder
+	fmt.Fprintf(&b, "clientConn(%s->%s,singleUse(%v))",
+		r.tconn.LocalAddr(), r.tconn.RemoteAddr(), r.singleUse)
+	return b.String()
+}
+
 // clientStream is the state for a single HTTP/2 stream. One of these
 // is created for each Transport.RoundTrip call.
 type clientStream struct {
@@ -595,6 +602,9 @@ func (t *Transport) dialClientConn(ctx context.Context, addr string, singleUse b
 	if err != nil {
 		return nil, err
 	}
+	if VerboseLogs {
+		t.vlogf("http2: Transport dial client conn to %s", addr)
+	}
 	return t.newClientConn(tconn, singleUse)
 }
 
@@ -650,6 +660,7 @@ func (t *Transport) NewClientConn(c net.Conn) (*ClientConn, error) {
 }
 
 func (t *Transport) newClientConn(c net.Conn, singleUse bool) (*ClientConn, error) {
+	started := time.Now()
 	cc := &ClientConn{
 		t:                     t,
 		tconn:                 c,
@@ -670,7 +681,7 @@ func (t *Transport) newClientConn(c net.Conn, singleUse bool) (*ClientConn, erro
 		cc.idleTimer = time.AfterFunc(d, cc.onIdleTimeout)
 	}
 	if VerboseLogs {
-		t.vlogf("http2: Transport creating client conn %p to %v", cc, c.RemoteAddr())
+		t.vlogf("http2: Transport creating client conn %s", cc)
 	}
 
 	cc.cond = sync.NewCond(&cc.mu)
@@ -718,10 +729,12 @@ func (t *Transport) newClientConn(c net.Conn, singleUse bool) (*ClientConn, erro
 	cc.inflow.add(transportDefaultConnFlow + initialWindowSize)
 	cc.bw.Flush()
 	if cc.werr != nil {
+		t.vlogf("http2: Transport failed to write preface to %v: %v", c.RemoteAddr(), cc.werr)
 		cc.Close()
 		return nil, cc.werr
 	}
 
+	t.vlogf("http2: Transport wrote preface to %v after %v", c.RemoteAddr(), time.Since(started))
 	go cc.readLoop()
 	return cc, nil
 }
