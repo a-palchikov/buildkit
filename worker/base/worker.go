@@ -410,7 +410,7 @@ func (w *Worker) Exporter(name string, sm *session.Manager) (exporter.Exporter, 
 			Variant:        ociexporter.VariantOCI,
 			LeaseManager:   w.LeaseManager(),
 		})
-	case client.ExporterDocker:
+	case client.ExporterDocker, client.ExporterDockerDaemon:
 		return ociexporter.New(ociexporter.Opt{
 			SessionManager: sm,
 			ImageWriter:    w.imageWriter,

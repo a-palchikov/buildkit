@@ -155,10 +155,42 @@ func (e *localExporterInstance) Export(ctx context.Context, inp *exporter.Source
 	if err != nil {
 		return nil, nil, err
 	}
+
+	comp := e.compression()
+	switch comp.Type {
+	case compression.Zstd:
+		w, err = zstdWriter(comp, w)
+		if err != nil {
+			return nil, err
+		}
+	case compression.Gzip:
+		w, err = gzipWriter(comp, w)
+		if err != nil {
+			return nil, err
+		}
+	}
+
 	report := progress.OneOff(ctx, "sending tarball")
 	if err := fsutil.WriteTar(ctx, fs, w); err != nil {
 		w.Close()
 		return nil, nil, report(err)
 	}
 	return nil, nil, report(w.Close())
+}
+
+func oneOffProgress(ctx context.Context, id string) func(err error) error {
+	pw, _, _ := progress.NewFromContext(ctx)
+	now := time.Now()
+	st := progress.Status{
+		Started: &now,
+	}
+	pw.Write(id, st)
+	return func(err error) error {
+		// TODO: set error on status
+		now := time.Now()
+		st.Completed = &now
+		pw.Write(id, st)
+		pw.Close()
+		return err
+	}
 }

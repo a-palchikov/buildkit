@@ -1,5 +1,6 @@
 prefix=/usr/local
 bindir=$(prefix)/bin
+version?=$(shell hack/version.sh)
 
 export BUILDX_CMD ?= docker buildx
 
