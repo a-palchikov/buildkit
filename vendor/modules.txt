@@ -57,7 +57,7 @@ github.com/containerd/cgroups/stats/v1
 # github.com/containerd/console v1.0.3
 ## explicit; go 1.13
 github.com/containerd/console
-# github.com/containerd/containerd v1.6.0 => github.com/a-palchikov/containerd v0.0.0-20220302225827-4b7115601863
+# github.com/containerd/containerd v1.6.1 => github.com/a-palchikov/containerd v0.0.0-20220310133909-d47881ac77d3
 ## explicit; go 1.16
 github.com/containerd/containerd
 github.com/containerd/containerd/api/services/containers/v1
@@ -722,6 +722,6 @@ gotest.tools/v3/internal/difflib
 gotest.tools/v3/internal/format
 gotest.tools/v3/internal/source
 gotest.tools/v3/poll
-# github.com/containerd/containerd => github.com/a-palchikov/containerd v0.0.0-20220302225827-4b7115601863
+# github.com/containerd/containerd => github.com/a-palchikov/containerd v0.0.0-20220310133909-d47881ac77d3
 # github.com/docker/docker => github.com/docker/docker v20.10.3-0.20220224222438-c78f6963a1c0+incompatible
 # golang.org/x/net => github.com/a-palchikov/net v0.0.0-20220223143411-a4a8547bb557
