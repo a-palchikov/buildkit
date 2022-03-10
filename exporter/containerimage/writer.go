@@ -305,6 +305,9 @@ func (ic *ImageWriter) commitDistributionManifest(ctx context.Context, ref cache
 	}
 	mfstDone := oneOffProgress(ctx, "exporting manifest "+mfstDigest.String())
 
+	fmt.Println("Exporting manifest\n", string(mfstJSON))
+	fmt.Println("\twith config\n", string(config))
+
 	if err := content.WriteBlob(ctx, ic.opt.ContentStore, mfstDigest.String(), bytes.NewReader(mfstJSON), mfstDesc, content.WithLabels((labels))); err != nil {
 		return nil, nil, mfstDone(errors.Wrapf(err, "error writing manifest blob %s", mfstDigest))
 	}

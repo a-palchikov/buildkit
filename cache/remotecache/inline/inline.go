@@ -3,12 +3,14 @@ package registry
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 
 	"github.com/moby/buildkit/cache/remotecache"
 	v1 "github.com/moby/buildkit/cache/remotecache/v1"
 	"github.com/moby/buildkit/session"
 	"github.com/moby/buildkit/solver"
 	"github.com/moby/buildkit/util/compression"
+	"github.com/moby/buildkit/util/bklog"
 	digest "github.com/opencontainers/go-digest"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
@@ -46,7 +48,12 @@ func (ce *exporter) reset() {
 	ce.chains = cc
 }
 
-func (ce *exporter) ExportForLayers(ctx context.Context, layers []digest.Digest) ([]byte, error) {
+func (ce *exporter) ExportForLayers(ctx context.Context, layers []digest.Digest) (cache []byte, err error) {
+	bklog.G(ctx).Debug("ExportForLayers: layers=", layers)
+	defer func() {
+		fmt.Println("Computed inline cache:\n", string(cache))
+	}()
+
 	config, descs, err := ce.chains.Marshal(ctx)
 	if err != nil {
 		return nil, err
