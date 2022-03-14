@@ -193,6 +193,16 @@ func isTemporary(err error) bool {
 // and starts to receive messages on it. Non-nil error returns if construction
 // fails.
 func newHTTP2Client(connectCtx, ctx context.Context, addr resolver.Address, opts ConnectOptions, onPrefaceReceipt func(), onGoAway func(GoAwayReason), onClose func()) (_ *http2Client, err error) {
+	start := time.Now()
+	if logger.V(logLevel) {
+		logger.Infof("[grpc]: create new http2 client to %s at %s", addr.Addr, start)
+	}
+	defer func() {
+		if logger.V(logLevel) {
+			logger.Info("[grpc]: created http2 client in", time.Since(start))
+		}
+	}()
+
 	scheme := "http"
 	ctx, cancel := context.WithCancel(ctx)
 	defer func() {
@@ -214,6 +224,11 @@ func newHTTP2Client(connectCtx, ctx context.Context, addr resolver.Address, opts
 		}
 		return nil, connectionErrorf(true, err, "transport: Error while dialing %v", err)
 	}
+
+	if logger.V(logLevel) {
+		logger.Infof("[grpc]: create new http2 clientconn r(%s) -> l(%s) in %s", conn.RemoteAddr(), conn.LocalAddr(), time.Since(start))
+	}
+
 	// Any further errors will close the underlying connection
 	defer func(conn net.Conn) {
 		if err != nil {
@@ -258,7 +273,14 @@ func newHTTP2Client(connectCtx, ctx context.Context, addr resolver.Address, opts
 		// the conn not timeout on I/O operations.
 		deadline, _ := connectCtx.Deadline()
 		rawConn.SetDeadline(deadline)
+		handshakeStart := time.Now()
+		if logger.V(logLevel) {
+			logger.Infof("[grpc]: set conn deadline to %s (rel %s)", deadline, deadline.Sub(start))
+		}
 		conn, authInfo, err = transportCreds.ClientHandshake(connectCtx, addr.ServerName, rawConn)
+		if logger.V(logLevel) {
+			logger.Infof("[grpc]: reset conn deadline after handshake at", time.Since(handshakeStart), "with err", err)
+		}
 		rawConn.SetDeadline(time.Time{})
 		if err != nil {
 			return nil, connectionErrorf(isTemporary(err), err, "transport: authentication handshake failed: %v", err)
@@ -363,18 +385,34 @@ func newHTTP2Client(connectCtx, ctx context.Context, addr resolver.Address, opts
 	// dispatches the frame to the corresponding stream entity.
 	go t.reader()
 
+	prefaceStart := time.Now()
+	if logger.V(logLevel) {
+		logger.Info("[grpc]: started writing http2 client preface in", time.Since(start), "at", prefaceStart)
+	}
+
 	// Send connection preface to server.
 	n, err := t.conn.Write(clientPreface)
 	if err != nil {
+		if logger.V(logLevel) {
+			logger.Warningf("[grpc]: failed to write http2 client preface to %v: %v (in %s, after starting writing preface %s)", conn.RemoteAddr(), err, time.Since(start), time.Since(prefaceStart))
+		}
 		err = connectionErrorf(true, err, "transport: failed to write client preface: %v", err)
 		t.Close(err)
 		return nil, err
 	}
 	if n != len(clientPreface) {
+		if logger.V(logLevel) {
+			logger.Warningf("[grpc]: invalid http2 client preface r(%v)", conn.RemoteAddr())
+		}
 		err = connectionErrorf(true, nil, "transport: preface mismatch, wrote %d bytes; want %d", n, len(clientPreface))
 		t.Close(err)
 		return nil, err
 	}
+
+	if logger.V(logLevel) {
+		logger.Infof("[grpc]: wrote http2 client preface in %s (local since %s)", time.Since(start), time.Since(prefaceStart))
+	}
+
 	var ss []http2.Setting
 
 	if t.initialWindowSize != defaultWindowSize {
@@ -1383,7 +1421,7 @@ func (t *http2Client) operateHeaders(frame *http2.MetaHeadersFrame) {
 	}
 
 	if !isGRPC || httpStatusErr != "" {
-		var code = codes.Internal // when header does not include HTTP status, return INTERNAL
+		code := codes.Internal // when header does not include HTTP status, return INTERNAL
 
 		if httpStatusCode != nil {
 			var ok bool
