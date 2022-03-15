@@ -16,7 +16,7 @@ dev-binaries: FORCE
 	PLATFORMS="darwin/amd64" hack/binaries
 
 dev-images: FORCE
-	PLATFORMS="linux/amd64" hack/images "debug-$(version)" moby/buildkit
+	PLATFORMS="linux/amd64" hack/images "$(version)" moby/buildkit
 
 install: FORCE
 	mkdir -p $(DESTDIR)$(bindir)
