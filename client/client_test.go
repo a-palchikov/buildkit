@@ -745,9 +745,9 @@ func testPushByDigest(t *testing.T, sb integration.Sandbox) {
 
 	require.NotEmpty(t, resp.ExportersResponse)
 	for _, resp := range resp.ExportersResponse {
-		desc, _, err := contentutil.ProviderFromRef(name + "@" + resp.Response[exptypes.ExporterImageDigestKey])
+		desc, _, err := contentutil.ProviderFromRef(name + "@" + resp[exptypes.ExporterImageDigestKey])
 		require.NoError(t, err)
-		require.Equal(t, resp.Response[exptypes.ExporterImageDigestKey], desc.Digest.String())
+		require.Equal(t, resp[exptypes.ExporterImageDigestKey], desc.Digest.String())
 		require.Equal(t, images.MediaTypeDockerSchema2Manifest, desc.MediaType)
 		require.True(t, desc.Size > 0)
 	}
@@ -1040,7 +1040,7 @@ func testFrontendImageNaming(t *testing.T, sb integration.Sandbox) {
 					require.NoError(t, err)
 					require.NotEmpty(t, resp.ExportersResponse)
 					for _, resp := range resp.ExportersResponse {
-						checkImageName[exp](out, imageName, resp.Response)
+						checkImageName[exp](out, imageName, resp)
 					}
 				})
 			}
@@ -2079,10 +2079,10 @@ func testFrontendMetadataReturn(t *testing.T, sb integration.Sandbox) {
 	require.NoError(t, err)
 	require.NotEmpty(t, res.ExportersResponse)
 	for _, resp := range res.ExportersResponse {
-		require.Contains(t, resp.Response, "frontend.returned")
-		require.Equal(t, resp.Response["frontend.returned"], "true")
-		require.NotContains(t, resp.Response, "not-frontend.not-returned")
-		require.NotContains(t, resp.Response, "frontendnot.returned.either")
+		require.Contains(t, resp, "frontend.returned")
+		require.Equal(t, resp["frontend.returned"], "true")
+		require.NotContains(t, resp, "not-frontend.not-returned")
+		require.NotContains(t, resp, "frontendnot.returned.either")
 	}
 	checkAllReleasable(t, c, sb, true)
 }
@@ -2180,11 +2180,11 @@ func testExporterTargetExists(t *testing.T, sb integration.Sandbox) {
 	require.NoError(t, err)
 	require.NotEmpty(t, res.ExportersResponse)
 	for _, resp := range res.ExportersResponse {
-		dgst := resp.Response[exptypes.ExporterImageDigestKey]
+		dgst := resp[exptypes.ExporterImageDigestKey]
 
 		require.True(t, strings.HasPrefix(dgst, "sha256:"))
 		require.Equal(t, dgst, mdDgst)
-		require.True(t, strings.HasPrefix(resp.Response[exptypes.ExporterImageConfigDigestKey], "sha256:"))
+		require.True(t, strings.HasPrefix(resp[exptypes.ExporterImageConfigDigestKey], "sha256:"))
 
 	}
 }
@@ -3855,7 +3855,7 @@ func testBasicInlineCacheImportExport(t *testing.T, sb integration.Sandbox) {
 	require.NoError(t, err)
 
 	require.NotEmpty(t, resp.ExportersResponse)
-	dgst, ok := resp.ExportersResponse[0].Response[exptypes.ExporterImageDigestKey]
+	dgst, ok := resp.ExportersResponse[0][exptypes.ExporterImageDigestKey]
 	require.Equal(t, ok, true)
 
 	unique, err := readFileInImage(sb.Context(), c, target+"@"+dgst, "/unique")
@@ -3892,7 +3892,7 @@ func testBasicInlineCacheImportExport(t *testing.T, sb integration.Sandbox) {
 	require.NoError(t, err)
 
 	require.NotEmpty(t, resp.ExportersResponse)
-	dgst2, ok := resp.ExportersResponse[0].Response[exptypes.ExporterImageDigestKey]
+	dgst2, ok := resp.ExportersResponse[0][exptypes.ExporterImageDigestKey]
 	require.Equal(t, ok, true)
 
 	require.Equal(t, dgst, dgst2)
@@ -3931,7 +3931,7 @@ func testBasicInlineCacheImportExport(t *testing.T, sb integration.Sandbox) {
 	require.NoError(t, err)
 
 	require.NotEmpty(t, resp.ExportersResponse)
-	dgst2uncompress, ok := resp.ExportersResponse[0].Response[exptypes.ExporterImageDigestKey]
+	dgst2uncompress, ok := resp.ExportersResponse[0][exptypes.ExporterImageDigestKey]
 	require.Equal(t, ok, true)
 
 	// dgst2uncompress != dgst, because the compression type is different
@@ -3963,7 +3963,7 @@ func testBasicInlineCacheImportExport(t *testing.T, sb integration.Sandbox) {
 	require.NoError(t, err)
 
 	require.NotEmpty(t, resp.ExportersResponse)
-	dgst3, ok := resp.ExportersResponse[0].Response[exptypes.ExporterImageDigestKey]
+	dgst3, ok := resp.ExportersResponse[0][exptypes.ExporterImageDigestKey]
 	require.Equal(t, ok, true)
 
 	// dgst3 != dgst, because inline cache is not exported for dgst3
@@ -5646,8 +5646,8 @@ func testBuildInfoExporter(t *testing.T, sb integration.Sandbox) {
 	}, "", frontend, nil)
 	require.NoError(t, err)
 
-	require.Contains(t, res.ExporterResponse, exptypes.ExporterBuildInfo)
-	decbi, err := base64.StdEncoding.DecodeString(res.ExporterResponse[exptypes.ExporterBuildInfo])
+	require.Contains(t, res.ExportersResponse[0], exptypes.ExporterBuildInfo)
+	decbi, err := base64.StdEncoding.DecodeString(res.ExportersResponse[0][exptypes.ExporterBuildInfo])
 	require.NoError(t, err)
 
 	var exbi binfotypes.BuildInfo
@@ -5776,8 +5776,8 @@ func testBuildInfoNoExport(t *testing.T, sb integration.Sandbox) {
 	res, err := c.Build(sb.Context(), SolveOpt{}, "", frontend, nil)
 	require.NoError(t, err)
 
-	require.Contains(t, res.ExporterResponse, exptypes.ExporterBuildInfo)
-	decbi, err := base64.StdEncoding.DecodeString(res.ExporterResponse[exptypes.ExporterBuildInfo])
+	require.Contains(t, res.ExportersResponse[0], exptypes.ExporterBuildInfo)
+	decbi, err := base64.StdEncoding.DecodeString(res.ExportersResponse[0][exptypes.ExporterBuildInfo])
 	require.NoError(t, err)
 
 	var exbi binfotypes.BuildInfo

@@ -99,8 +99,8 @@ COPY --from=alpine /bin/busybox /alpine-busybox
 	}, nil)
 	require.NoError(t, err)
 
-	require.Contains(t, res.ExporterResponse, exptypes.ExporterBuildInfo)
-	dtbi, err := base64.StdEncoding.DecodeString(res.ExporterResponse[exptypes.ExporterBuildInfo])
+	require.Contains(t, res.ExportersResponse[0], exptypes.ExporterBuildInfo)
+	dtbi, err := base64.StdEncoding.DecodeString(res.ExportersResponse[0][exptypes.ExporterBuildInfo])
 	require.NoError(t, err)
 
 	var bi binfotypes.BuildInfo
@@ -166,8 +166,8 @@ FROM busybox:latest
 	}, nil)
 	require.NoError(t, err)
 
-	require.Contains(t, res.ExporterResponse, exptypes.ExporterBuildInfo)
-	dtbi, err := base64.StdEncoding.DecodeString(res.ExporterResponse[exptypes.ExporterBuildInfo])
+	require.Contains(t, res.ExportersResponse[0], exptypes.ExporterBuildInfo)
+	dtbi, err := base64.StdEncoding.DecodeString(res.ExportersResponse[0][exptypes.ExporterBuildInfo])
 	require.NoError(t, err)
 
 	var bi binfotypes.BuildInfo
@@ -228,8 +228,8 @@ RUN echo $foo
 	}, nil)
 	require.NoError(t, err)
 
-	require.Contains(t, res.ExporterResponse, exptypes.ExporterBuildInfo)
-	dtbi, err := base64.StdEncoding.DecodeString(res.ExporterResponse[exptypes.ExporterBuildInfo])
+	require.Contains(t, res.ExportersResponse[0], exptypes.ExporterBuildInfo)
+	dtbi, err := base64.StdEncoding.DecodeString(res.ExportersResponse[0][exptypes.ExporterBuildInfo])
 	require.NoError(t, err)
 
 	var bi binfotypes.BuildInfo
@@ -291,8 +291,8 @@ ADD https://raw.githubusercontent.com/moby/moby/master/README.md /
 	require.NoError(t, err)
 
 	for _, platform := range platforms {
-		require.Contains(t, res.ExporterResponse, fmt.Sprintf("%s/%s", exptypes.ExporterBuildInfo, platform))
-		dtbi, err := base64.StdEncoding.DecodeString(res.ExporterResponse[fmt.Sprintf("%s/%s", exptypes.ExporterBuildInfo, platform)])
+		require.Contains(t, res.ExportersResponse[0], fmt.Sprintf("%s/%s", exptypes.ExporterBuildInfo, platform))
+		dtbi, err := base64.StdEncoding.DecodeString(res.ExportersResponse[0][fmt.Sprintf("%s/%s", exptypes.ExporterBuildInfo, platform)])
 		require.NoError(t, err)
 
 		var bi binfotypes.BuildInfo
@@ -362,8 +362,8 @@ COPY --from=base /out /
 	}, nil)
 	require.NoError(t, err)
 
-	require.Contains(t, res.ExporterResponse, exptypes.ExporterBuildInfo)
-	dtbi, err := base64.StdEncoding.DecodeString(res.ExporterResponse[exptypes.ExporterBuildInfo])
+	require.Contains(t, res.ExportersResponse[0], exptypes.ExporterBuildInfo)
+	dtbi, err := base64.StdEncoding.DecodeString(res.ExportersResponse[0][exptypes.ExporterBuildInfo])
 	require.NoError(t, err)
 
 	var bi binfotypes.BuildInfo
@@ -440,8 +440,8 @@ COPY --from=base /o* /
 	}, nil)
 	require.NoError(t, err)
 
-	require.Contains(t, res.ExporterResponse, exptypes.ExporterBuildInfo)
-	dtbi, err := base64.StdEncoding.DecodeString(res.ExporterResponse[exptypes.ExporterBuildInfo])
+	require.Contains(t, res.ExportersResponse[0], exptypes.ExporterBuildInfo)
+	dtbi, err := base64.StdEncoding.DecodeString(res.ExportersResponse[0][exptypes.ExporterBuildInfo])
 	require.NoError(t, err)
 
 	var bi binfotypes.BuildInfo
@@ -563,8 +563,8 @@ COPY --from=build /foo /out /
 	}, "", b, nil)
 	require.NoError(t, err)
 
-	require.Contains(t, res.ExporterResponse, exptypes.ExporterBuildInfo)
-	dtbi, err := base64.StdEncoding.DecodeString(res.ExporterResponse[exptypes.ExporterBuildInfo])
+	require.Contains(t, res.ExportersResponse[0], exptypes.ExporterBuildInfo)
+	dtbi, err := base64.StdEncoding.DecodeString(res.ExportersResponse[0][exptypes.ExporterBuildInfo])
 	require.NoError(t, err)
 
 	var bi binfotypes.BuildInfo
@@ -710,8 +710,8 @@ COPY --from=build /foo /out /
 	require.NoError(t, err)
 
 	for _, platform := range platforms {
-		require.Contains(t, res.ExporterResponse, fmt.Sprintf("%s/%s", exptypes.ExporterBuildInfo, platform))
-		dtbi, err := base64.StdEncoding.DecodeString(res.ExporterResponse[fmt.Sprintf("%s/%s", exptypes.ExporterBuildInfo, platform)])
+		require.Contains(t, res.ExportersResponse[0], fmt.Sprintf("%s/%s", exptypes.ExporterBuildInfo, platform))
+		dtbi, err := base64.StdEncoding.DecodeString(res.ExportersResponse[0][fmt.Sprintf("%s/%s", exptypes.ExporterBuildInfo, platform)])
 		require.NoError(t, err)
 
 		var bi binfotypes.BuildInfo
@@ -840,8 +840,8 @@ RUN echo "foo is $FOO" > /foo
 	}, "", b, nil)
 	require.NoError(t, err)
 
-	require.Contains(t, res.ExporterResponse, exptypes.ExporterBuildInfo)
-	dtbi, err := base64.StdEncoding.DecodeString(res.ExporterResponse[exptypes.ExporterBuildInfo])
+	require.Contains(t, res.ExportersResponse[0], exptypes.ExporterBuildInfo)
+	dtbi, err := base64.StdEncoding.DecodeString(res.ExportersResponse[0][exptypes.ExporterBuildInfo])
 	require.NoError(t, err)
 
 	var bi binfotypes.BuildInfo

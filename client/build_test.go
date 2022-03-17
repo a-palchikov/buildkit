@@ -2041,8 +2041,9 @@ func testClientGatewayFrontendAttrs(t *testing.T, sb integration.Sandbox) {
 	res, err := c.Build(sb.Context(), SolveOpt{}, "", b, nil)
 	require.NoError(t, err)
 
-	require.Contains(t, res.ExporterResponse, exptypes.ExporterBuildInfo)
-	decbi, err := base64.StdEncoding.DecodeString(res.ExporterResponse[exptypes.ExporterBuildInfo])
+	require.NotEmpty(t, res.ExportersResponse)
+	require.Contains(t, res.ExportersResponse[0], exptypes.ExporterBuildInfo)
+	decbi, err := base64.StdEncoding.DecodeString(res.ExportersResponse[0][exptypes.ExporterBuildInfo])
 	require.NoError(t, err)
 
 	var bi binfotypes.BuildInfo
