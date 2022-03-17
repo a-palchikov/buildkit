@@ -28,6 +28,7 @@ import (
 	binfotypes "github.com/moby/buildkit/util/buildinfo/types"
 	"github.com/moby/buildkit/util/entitlements"
 	utilsystem "github.com/moby/buildkit/util/system"
+	"github.com/moby/buildkit/util/testutil"
 	"github.com/moby/buildkit/util/testutil/echoserver"
 	"github.com/moby/buildkit/util/testutil/integration"
 	digest "github.com/opencontainers/go-digest"
@@ -82,7 +83,7 @@ func TestClientGatewayIntegration(t *testing.T) {
 }
 
 func testClientGatewaySolve(t *testing.T, sb integration.Sandbox) {
-	requiresLinux(t)
+	testutil.RequiresLinux(t)
 
 	ctx := sb.Context()
 
@@ -160,7 +161,7 @@ func testClientGatewaySolve(t *testing.T, sb integration.Sandbox) {
 }
 
 func testWarnings(t *testing.T, sb integration.Sandbox) {
-	requiresLinux(t)
+	testutil.RequiresLinux(t)
 
 	ctx := sb.Context()
 
@@ -266,7 +267,7 @@ func testWarnings(t *testing.T, sb integration.Sandbox) {
 }
 
 func testClientGatewayFailedSolve(t *testing.T, sb integration.Sandbox) {
-	requiresLinux(t)
+	testutil.RequiresLinux(t)
 
 	ctx := sb.Context()
 
@@ -284,7 +285,7 @@ func testClientGatewayFailedSolve(t *testing.T, sb integration.Sandbox) {
 }
 
 func testClientGatewayEmptySolve(t *testing.T, sb integration.Sandbox) {
-	requiresLinux(t)
+	testutil.RequiresLinux(t)
 
 	ctx := sb.Context()
 
@@ -308,7 +309,7 @@ func testClientGatewayEmptySolve(t *testing.T, sb integration.Sandbox) {
 }
 
 func testNoBuildID(t *testing.T, sb integration.Sandbox) {
-	requiresLinux(t)
+	testutil.RequiresLinux(t)
 
 	ctx := sb.Context()
 
@@ -323,7 +324,7 @@ func testNoBuildID(t *testing.T, sb integration.Sandbox) {
 }
 
 func testUnknownBuildID(t *testing.T, sb integration.Sandbox) {
-	requiresLinux(t)
+	testutil.RequiresLinux(t)
 
 	ctx := sb.Context()
 
@@ -340,7 +341,7 @@ func testUnknownBuildID(t *testing.T, sb integration.Sandbox) {
 // testClientGatewayContainerCancelOnRelease is testing that all running
 // processes are terminated when the container is released.
 func testClientGatewayContainerCancelOnRelease(t *testing.T, sb integration.Sandbox) {
-	requiresLinux(t)
+	testutil.RequiresLinux(t)
 
 	ctx := sb.Context()
 
@@ -413,7 +414,7 @@ func testClientGatewayContainerCancelOnRelease(t *testing.T, sb integration.Sand
 // process together all started via `Exec` into the same container.
 // We are mimicing: `echo testing | cat | cat > /tmp/foo && cat /tmp/foo`
 func testClientGatewayContainerExecPipe(t *testing.T, sb integration.Sandbox) {
-	requiresLinux(t)
+	testutil.RequiresLinux(t)
 
 	ctx := sb.Context()
 
@@ -447,7 +448,6 @@ func testClientGatewayContainerExecPipe(t *testing.T, sb integration.Sandbox) {
 				Ref:       r.Ref,
 			}},
 		})
-
 		if err != nil {
 			return nil, err
 		}
@@ -478,7 +478,6 @@ func testClientGatewayContainerExecPipe(t *testing.T, sb integration.Sandbox) {
 			Stdin:  io.NopCloser(stdin2),
 			Stdout: stdout2,
 		})
-
 		if err != nil {
 			return nil, err
 		}
@@ -539,7 +538,7 @@ func testClientGatewayContainerExecPipe(t *testing.T, sb integration.Sandbox) {
 // testClientGatewayContainerPID1Fail is testing clean shutdown and release
 // of resources when the primary pid1 exits with non-zero exit status
 func testClientGatewayContainerPID1Fail(t *testing.T, sb integration.Sandbox) {
-	requiresLinux(t)
+	testutil.RequiresLinux(t)
 
 	ctx := sb.Context()
 
@@ -571,7 +570,6 @@ func testClientGatewayContainerPID1Fail(t *testing.T, sb integration.Sandbox) {
 				Ref:       r.Ref,
 			}},
 		})
-
 		if err != nil {
 			return nil, err
 		}
@@ -603,7 +601,7 @@ func testClientGatewayContainerPID1Fail(t *testing.T, sb integration.Sandbox) {
 // testClientGatewayContainerPID1Exit is testing that all process started
 // via `Exec` are shutdown when the primary pid1 process exits
 func testClientGatewayContainerPID1Exit(t *testing.T, sb integration.Sandbox) {
-	requiresLinux(t)
+	testutil.RequiresLinux(t)
 
 	ctx := sb.Context()
 
@@ -635,7 +633,6 @@ func testClientGatewayContainerPID1Exit(t *testing.T, sb integration.Sandbox) {
 				Ref:       r.Ref,
 			}},
 		})
-
 		if err != nil {
 			return nil, err
 		}
@@ -679,7 +676,7 @@ func testClientGatewayContainerPID1Exit(t *testing.T, sb integration.Sandbox) {
 // testClientGatewayContainerMounts is testing mounts derived from various
 // llb.States
 func testClientGatewayContainerMounts(t *testing.T, sb integration.Sandbox) {
-	requiresLinux(t)
+	testutil.RequiresLinux(t)
 
 	ctx := sb.Context()
 
@@ -852,7 +849,7 @@ func testClientGatewayContainerMounts(t *testing.T, sb integration.Sandbox) {
 // testClientGatewayContainerPID1Tty is testing that we can get a tty via
 // a container pid1, executor.Run
 func testClientGatewayContainerPID1Tty(t *testing.T, sb integration.Sandbox) {
-	requiresLinux(t)
+	testutil.RequiresLinux(t)
 	ctx := sb.Context()
 
 	c, err := New(ctx, sb.Address())
@@ -990,7 +987,7 @@ func (p *testPrompt) wait(msg string) string {
 // testClientGatewayContainerExecTty is testing that we can get a tty via
 // executor.Exec (secondary process)
 func testClientGatewayContainerExecTty(t *testing.T, sb integration.Sandbox) {
-	requiresLinux(t)
+	testutil.RequiresLinux(t)
 	ctx := sb.Context()
 
 	c, err := New(ctx, sb.Address())
@@ -1080,7 +1077,7 @@ func testClientGatewayContainerExecTty(t *testing.T, sb integration.Sandbox) {
 }
 
 func testClientSlowCacheRootfsRef(t *testing.T, sb integration.Sandbox) {
-	requiresLinux(t)
+	testutil.RequiresLinux(t)
 
 	ctx := sb.Context()
 
@@ -1148,7 +1145,7 @@ func testClientSlowCacheRootfsRef(t *testing.T, sb integration.Sandbox) {
 // testClientGatewayContainerPlatformPATH is testing the correct default PATH
 // gets set for the requested platform
 func testClientGatewayContainerPlatformPATH(t *testing.T, sb integration.Sandbox) {
-	requiresLinux(t)
+	testutil.RequiresLinux(t)
 	ctx := sb.Context()
 
 	c, err := New(ctx, sb.Address())
@@ -1219,7 +1216,7 @@ func testClientGatewayContainerPlatformPATH(t *testing.T, sb integration.Sandbox
 // testClientGatewayExecError is testing gateway exec to recreate the container
 // process for a failed execop.
 func testClientGatewayExecError(t *testing.T, sb integration.Sandbox) {
-	requiresLinux(t)
+	testutil.RequiresLinux(t)
 
 	ctx := sb.Context()
 
@@ -1239,28 +1236,32 @@ func testClientGatewayExecError(t *testing.T, sb integration.Sandbox) {
 			llb.Image("busybox:latest").Run(
 				llb.Shlexf(`sh -c "echo %s > /data && fail"`, id),
 			).Root(),
-			1, []string{"/data"},
+			1,
+			[]string{"/data"},
 		}, {
 			"rootfs and readwrite scratch mount",
 			llb.Image("busybox:latest").Run(
 				llb.Shlexf(`sh -c "echo %s > /data && echo %s > /rw/data && fail"`, id, id),
 				llb.AddMount("/rw", llb.Scratch()),
 			).Root(),
-			2, []string{"/data", "/rw/data"},
+			2,
+			[]string{"/data", "/rw/data"},
 		}, {
 			"rootfs and readwrite mount",
 			llb.Image("busybox:latest").Run(
 				llb.Shlexf(`sh -c "echo %s > /data && echo %s > /rw/data && fail"`, id, id),
 				llb.AddMount("/rw", llb.Scratch().File(llb.Mkfile("foo", 0700, []byte(id)))),
 			).Root(),
-			2, []string{"/data", "/rw/data", "/rw/foo"},
+			2,
+			[]string{"/data", "/rw/data", "/rw/foo"},
 		}, {
 			"rootfs and readonly scratch mount",
 			llb.Image("busybox:latest").Run(
 				llb.Shlexf(`sh -c "echo %s > /data && echo %s > /readonly/foo"`, id, id),
 				llb.AddMount("/readonly", llb.Scratch(), llb.Readonly),
 			).Root(),
-			2, []string{"/data"},
+			2,
+			[]string{"/data"},
 		}, {
 			"rootfs and readwrite force no output mount",
 			llb.Image("busybox:latest").Run(
@@ -1271,7 +1272,8 @@ func testClientGatewayExecError(t *testing.T, sb integration.Sandbox) {
 					llb.ForceNoOutput,
 				),
 			).Root(),
-			2, []string{"/data", "/rw/data", "/rw/foo"},
+			2,
+			[]string{"/data", "/rw/data", "/rw/foo"},
 		}}
 
 		for _, tt := range tests {
@@ -1376,7 +1378,7 @@ func testClientGatewayExecError(t *testing.T, sb integration.Sandbox) {
 // testClientGatewaySlowCacheExecError is testing gateway exec into the ref
 // that failed to mount during an execop.
 func testClientGatewaySlowCacheExecError(t *testing.T, sb integration.Sandbox) {
-	requiresLinux(t)
+	testutil.RequiresLinux(t)
 
 	ctx := sb.Context()
 
@@ -1467,7 +1469,7 @@ func testClientGatewaySlowCacheExecError(t *testing.T, sb integration.Sandbox) {
 // testClientGatewayExecFileActionError is testing gateway exec into the modified
 // mount of a failed fileop during a solve.
 func testClientGatewayExecFileActionError(t *testing.T, sb integration.Sandbox) {
-	requiresLinux(t)
+	testutil.RequiresLinux(t)
 
 	ctx := sb.Context()
 
@@ -1623,7 +1625,7 @@ func testClientGatewayExecFileActionError(t *testing.T, sb integration.Sandbox) 
 // testClientGatewayContainerSecurityMode ensures that the correct security mode
 // is propagated to the gateway container
 func testClientGatewayContainerSecurityMode(t *testing.T, sb integration.Sandbox) {
-	requiresLinux(t)
+	testutil.RequiresLinux(t)
 
 	ctx := sb.Context()
 
@@ -1689,7 +1691,6 @@ func testClientGatewayContainerSecurityMode(t *testing.T, sb integration.Sandbox
 				Ref:       r.Ref,
 			}},
 		})
-
 		if err != nil {
 			return nil, err
 		}
@@ -1734,7 +1735,7 @@ func testClientGatewayContainerSecurityMode(t *testing.T, sb integration.Sandbox
 }
 
 func testClientGatewayContainerExtraHosts(t *testing.T, sb integration.Sandbox) {
-	requiresLinux(t)
+	testutil.RequiresLinux(t)
 
 	ctx := sb.Context()
 	product := "buildkit_test"
@@ -1769,7 +1770,6 @@ func testClientGatewayContainerExtraHosts(t *testing.T, sb integration.Sandbox) 
 				IP:   "169.254.11.22",
 			}},
 		})
-
 		if err != nil {
 			return nil, err
 		}
@@ -1815,7 +1815,7 @@ func testClientGatewayContainerHostNetworking(t *testing.T, sb integration.Sandb
 		t.SkipNow()
 	}
 
-	requiresLinux(t)
+	testutil.RequiresLinux(t)
 
 	ctx := sb.Context()
 	product := "buildkit_test"
@@ -1858,7 +1858,6 @@ func testClientGatewayContainerHostNetworking(t *testing.T, sb integration.Sandb
 			}},
 			NetMode: netMode,
 		})
-
 		if err != nil {
 			return nil, err
 		}
@@ -1902,7 +1901,7 @@ func testClientGatewayContainerHostNetworking(t *testing.T, sb integration.Sandb
 
 // testClientGatewayContainerSignal is testing that we can send a signal
 func testClientGatewayContainerSignal(t *testing.T, sb integration.Sandbox) {
-	requiresLinux(t)
+	testutil.RequiresLinux(t)
 	ctx := sb.Context()
 
 	c, err := New(ctx, sb.Address())
@@ -2000,7 +1999,7 @@ func testClientGatewayContainerSignal(t *testing.T, sb integration.Sandbox) {
 
 // moby/buildkit#2476
 func testClientGatewayFrontendAttrs(t *testing.T, sb integration.Sandbox) {
-	requiresLinux(t)
+	testutil.RequiresLinux(t)
 	c, err := New(sb.Context(), sb.Address())
 	require.NoError(t, err)
 	defer c.Close()

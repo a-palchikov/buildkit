@@ -43,6 +43,7 @@ import (
 	"github.com/moby/buildkit/util/compression"
 	"github.com/moby/buildkit/util/contentutil"
 	"github.com/moby/buildkit/util/leaseutil"
+	"github.com/moby/buildkit/util/testutil"
 	"github.com/moby/buildkit/util/winlayers"
 	digest "github.com/opencontainers/go-digest"
 	ocispecs "github.com/opencontainers/image-spec/specs-go/v1"
@@ -436,9 +437,8 @@ func TestMergeBlobchainID(t *testing.T) {
 }
 
 func TestSnapshotExtract(t *testing.T) {
-	if runtime.GOOS == "windows" {
-		t.Skip("Depends on unimplemented containerd bind-mount support on Windows")
-	}
+	testutil.RequiresLinuxSupport(t, "containerd bind-mount")
+	testutil.RequiresRoot(t)
 
 	t.Parallel()
 	ctx := namespaces.WithNamespace(context.Background(), "buildkit-test")
@@ -579,6 +579,7 @@ func TestExtractOnMutable(t *testing.T) {
 	if runtime.GOOS == "windows" {
 		t.Skip("Depends on unimplemented containerd bind-mount support on Windows")
 	}
+	testutil.RequiresRoot(t)
 
 	t.Parallel()
 	ctx := namespaces.WithNamespace(context.Background(), "buildkit-test")
@@ -858,7 +859,7 @@ func TestSetBlob(t *testing.T) {
 
 	clean(context.TODO())
 
-	//snap.SetBlob()
+	// snap.SetBlob()
 }
 
 func TestPrune(t *testing.T) {
@@ -1610,9 +1611,8 @@ type idxToVariants []map[compression.Type]ocispecs.Descriptor
 func TestGetRemotes(t *testing.T) {
 	t.Parallel()
 	// windows fails when lazy blob is being extracted with "invalid windows mount type: 'bind'"
-	if runtime.GOOS != "linux" {
-		t.Skipf("unsupported GOOS: %s", runtime.GOOS)
-	}
+	testutil.RequiresLinuxSupport(t, "containerd bind-mount")
+	testutil.RequiresRoot(t)
 
 	ctx := namespaces.WithNamespace(context.Background(), "buildkit-test")
 
@@ -2037,9 +2037,8 @@ func checkDescriptor(ctx context.Context, t *testing.T, cs content.Store, desc o
 }
 
 func TestMergeOp(t *testing.T) {
-	if runtime.GOOS == "windows" {
-		t.Skip("Depends on unimplemented merge-op support on Windows")
-	}
+	testutil.RequiresLinuxSupport(t, "merge-op")
+	testutil.RequiresRoot(t)
 
 	// This just tests the basic Merge method and some of the logic with releasing merge refs.
 	// Tests for the fs merge logic are in client_test and snapshotter_test.
@@ -2153,9 +2152,8 @@ func TestMergeOp(t *testing.T) {
 }
 
 func TestDiffOp(t *testing.T) {
-	if runtime.GOOS == "windows" {
-		t.Skip("Depends on unimplemented diff-op support on Windows")
-	}
+	testutil.RequiresLinuxSupport(t, "diff-op")
+	testutil.RequiresRoot(t)
 
 	// This just tests the basic Diff method and some of the logic with releasing diff refs.
 	// Tests for the fs diff logic are in client_test and snapshotter_test.

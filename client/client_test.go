@@ -16,7 +16,6 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
-	"runtime"
 	"strconv"
 	"strings"
 	"syscall"
@@ -708,7 +707,7 @@ func testNetworkMode(t *testing.T, sb integration.Sandbox) {
 
 func testPushByDigest(t *testing.T, sb integration.Sandbox) {
 	integration.SkipIfDockerd(t, sb, "direct push")
-	requiresLinux(t)
+	testutil.RequiresLinux(t)
 	c, err := New(sb.Context(), sb.Address())
 	require.NoError(t, err)
 	defer c.Close()
@@ -900,7 +899,7 @@ func testSecurityModeErrors(t *testing.T, sb integration.Sandbox) {
 
 func testFrontendImageNaming(t *testing.T, sb integration.Sandbox) {
 	integration.SkipIfDockerd(t, sb, "oci exporter", "direct push")
-	requiresLinux(t)
+	testutil.RequiresLinux(t)
 	c, err := New(sb.Context(), sb.Address())
 	require.NoError(t, err)
 	defer c.Close()
@@ -1173,7 +1172,7 @@ func testSecretEnv(t *testing.T, sb integration.Sandbox) {
 }
 
 func testTmpfsMounts(t *testing.T, sb integration.Sandbox) {
-	requiresLinux(t)
+	testutil.RequiresLinux(t)
 	c, err := New(sb.Context(), sb.Address())
 	require.NoError(t, err)
 	defer c.Close()
@@ -1189,7 +1188,7 @@ func testTmpfsMounts(t *testing.T, sb integration.Sandbox) {
 }
 
 func testLocalSymlinkEscape(t *testing.T, sb integration.Sandbox) {
-	requiresLinux(t)
+	testutil.RequiresLinux(t)
 	c, err := New(sb.Context(), sb.Address())
 	require.NoError(t, err)
 	defer c.Close()
@@ -1246,7 +1245,7 @@ func testLocalSymlinkEscape(t *testing.T, sb integration.Sandbox) {
 }
 
 func testRelativeWorkDir(t *testing.T, sb integration.Sandbox) {
-	requiresLinux(t)
+	testutil.RequiresLinux(t)
 	c, err := New(sb.Context(), sb.Address())
 	require.NoError(t, err)
 	defer c.Close()
@@ -1280,7 +1279,7 @@ func testRelativeWorkDir(t *testing.T, sb integration.Sandbox) {
 }
 
 func testFileOpMkdirMkfile(t *testing.T, sb integration.Sandbox) {
-	requiresLinux(t)
+	testutil.RequiresLinux(t)
 	c, err := New(sb.Context(), sb.Address())
 	require.NoError(t, err)
 	defer c.Close()
@@ -1315,7 +1314,7 @@ func testFileOpMkdirMkfile(t *testing.T, sb integration.Sandbox) {
 }
 
 func testFileOpCopyRm(t *testing.T, sb integration.Sandbox) {
-	requiresLinux(t)
+	testutil.RequiresLinux(t)
 	c, err := New(sb.Context(), sb.Address())
 	require.NoError(t, err)
 	defer c.Close()
@@ -1384,7 +1383,7 @@ func testFileOpCopyRm(t *testing.T, sb integration.Sandbox) {
 }
 
 func testFileOpCopyIncludeExclude(t *testing.T, sb integration.Sandbox) {
-	requiresLinux(t)
+	testutil.RequiresLinux(t)
 	c, err := New(sb.Context(), sb.Address())
 	require.NoError(t, err)
 	defer c.Close()
@@ -1490,7 +1489,7 @@ func testFileOpCopyIncludeExclude(t *testing.T, sb integration.Sandbox) {
 
 // testFileOpInputSwap is a regression test that cache is invalidated when subset of fileop is built
 func testFileOpInputSwap(t *testing.T, sb integration.Sandbox) {
-	requiresLinux(t)
+	testutil.RequiresLinux(t)
 	c, err := New(sb.Context(), sb.Address())
 	require.NoError(t, err)
 	defer c.Close()
@@ -1527,7 +1526,7 @@ func testLocalSourceDiffer(t *testing.T, sb integration.Sandbox) {
 }
 
 func testLocalSourceWithDiffer(t *testing.T, sb integration.Sandbox, d llb.DiffType) {
-	requiresLinux(t)
+	testutil.RequiresLinux(t)
 	c, err := New(context.TODO(), sb.Address())
 	require.NoError(t, err)
 	defer c.Close()
@@ -1599,7 +1598,7 @@ func testLocalSourceWithDiffer(t *testing.T, sb integration.Sandbox, d llb.DiffT
 }
 
 func testFileOpRmWildcard(t *testing.T, sb integration.Sandbox) {
-	requiresLinux(t)
+	testutil.RequiresLinux(t)
 	c, err := New(sb.Context(), sb.Address())
 	require.NoError(t, err)
 	defer c.Close()
@@ -1664,7 +1663,7 @@ func testCallDiskUsage(t *testing.T, sb integration.Sandbox) {
 }
 
 func testBuildMultiMount(t *testing.T, sb integration.Sandbox) {
-	requiresLinux(t)
+	testutil.RequiresLinux(t)
 	c, err := New(sb.Context(), sb.Address())
 	require.NoError(t, err)
 	defer c.Close()
@@ -1779,7 +1778,7 @@ func testBuildHTTPSource(t *testing.T, sb integration.Sandbox) {
 }
 
 func testResolveAndHosts(t *testing.T, sb integration.Sandbox) {
-	requiresLinux(t)
+	testutil.RequiresLinux(t)
 	c, err := New(sb.Context(), sb.Address())
 	require.NoError(t, err)
 	defer c.Close()
@@ -1821,7 +1820,7 @@ func testResolveAndHosts(t *testing.T, sb integration.Sandbox) {
 }
 
 func testUser(t *testing.T, sb integration.Sandbox) {
-	requiresLinux(t)
+	testutil.RequiresLinux(t)
 	c, err := New(sb.Context(), sb.Address())
 	require.NoError(t, err)
 	defer c.Close()
@@ -1898,8 +1897,8 @@ func testUser(t *testing.T, sb integration.Sandbox) {
 }
 
 func testMultipleExporters(t *testing.T, sb integration.Sandbox) {
-	skipDockerd(t, sb)
-	requiresLinux(t)
+	integration.SkipIfDockerd(t, sb, "multiple exporters")
+	testutil.RequiresLinux(t)
 
 	c, err := New(sb.Context(), sb.Address())
 	require.NoError(t, err)
@@ -1951,7 +1950,7 @@ func testMultipleExporters(t *testing.T, sb integration.Sandbox) {
 
 func testOCIExporter(t *testing.T, sb integration.Sandbox) {
 	integration.SkipIfDockerd(t, sb, "oci exporter")
-	requiresLinux(t)
+	testutil.RequiresLinux(t)
 	c, err := New(sb.Context(), sb.Address())
 	require.NoError(t, err)
 	defer c.Close()
@@ -2054,7 +2053,7 @@ func testOCIExporter(t *testing.T, sb integration.Sandbox) {
 
 func testFrontendMetadataReturn(t *testing.T, sb integration.Sandbox) {
 	integration.SkipIfDockerd(t, sb, "oci exporter")
-	requiresLinux(t)
+	testutil.RequiresLinux(t)
 	c, err := New(sb.Context(), sb.Address())
 	require.NoError(t, err)
 	defer c.Close()
@@ -2088,7 +2087,7 @@ func testFrontendMetadataReturn(t *testing.T, sb integration.Sandbox) {
 }
 
 func testFrontendUseSolveResults(t *testing.T, sb integration.Sandbox) {
-	requiresLinux(t)
+	testutil.RequiresLinux(t)
 	c, err := New(sb.Context(), sb.Address())
 	require.NoError(t, err)
 	defer c.Close()
@@ -2155,7 +2154,7 @@ func testFrontendUseSolveResults(t *testing.T, sb integration.Sandbox) {
 
 func testExporterTargetExists(t *testing.T, sb integration.Sandbox) {
 	integration.SkipIfDockerd(t, sb, "oci exporter")
-	requiresLinux(t)
+	testutil.RequiresLinux(t)
 	c, err := New(sb.Context(), sb.Address())
 	require.NoError(t, err)
 	defer c.Close()
@@ -2194,7 +2193,7 @@ func testTarExporterWithSocket(t *testing.T, sb integration.Sandbox) {
 		t.Skip("tar exporter is temporarily broken on dockerd")
 	}
 
-	requiresLinux(t)
+	testutil.RequiresLinux(t)
 	c, err := New(sb.Context(), sb.Address())
 	require.NoError(t, err)
 	defer c.Close()
@@ -2222,7 +2221,7 @@ func testTarExporterWithSocketCopy(t *testing.T, sb integration.Sandbox) {
 		t.Skip("tar exporter is temporarily broken on dockerd")
 	}
 
-	requiresLinux(t)
+	testutil.RequiresLinux(t)
 	c, err := New(sb.Context(), sb.Address())
 	require.NoError(t, err)
 	defer c.Close()
@@ -2243,7 +2242,7 @@ func testTarExporterWithSocketCopy(t *testing.T, sb integration.Sandbox) {
 
 // moby/buildkit#1418
 func testTarExporterSymlink(t *testing.T, sb integration.Sandbox) {
-	requiresLinux(t)
+	testutil.RequiresLinux(t)
 	c, err := New(sb.Context(), sb.Address())
 	require.NoError(t, err)
 	defer c.Close()
@@ -2399,7 +2398,7 @@ func testBuildExportWithUncompressed(t *testing.T, sb integration.Sandbox) {
 	if os.Getenv("TEST_DOCKERD") == "1" {
 		t.Skip("image exporter is missing in dockerd")
 	}
-	requiresLinux(t)
+	testutil.RequiresLinux(t)
 	c, err := New(sb.Context(), sb.Address())
 	require.NoError(t, err)
 	defer c.Close()
@@ -2757,7 +2756,7 @@ func testPullZstdImage(t *testing.T, sb integration.Sandbox) {
 
 func testBuildPushAndValidate(t *testing.T, sb integration.Sandbox) {
 	integration.SkipIfDockerd(t, sb, "direct push")
-	requiresLinux(t)
+	testutil.RequiresLinux(t)
 	c, err := New(sb.Context(), sb.Address())
 	require.NoError(t, err)
 	defer c.Close()
@@ -2957,7 +2956,7 @@ func testBuildPushAndValidate(t *testing.T, sb integration.Sandbox) {
 
 func testStargzLazyRegistryCacheImportExport(t *testing.T, sb integration.Sandbox) {
 	integration.SkipIfDockerd(t, sb, "remote cache export")
-	requiresLinux(t)
+	testutil.RequiresLinux(t)
 
 	cdAddress := sb.ContainerdAddress()
 	if cdAddress == "" || sb.Snapshotter() != "stargz" {
@@ -3105,7 +3104,7 @@ func testStargzLazyRegistryCacheImportExport(t *testing.T, sb integration.Sandbo
 
 func testStargzLazyInlineCacheImportExport(t *testing.T, sb integration.Sandbox) {
 	integration.SkipIfDockerd(t, sb, "remote cache export")
-	requiresLinux(t)
+	testutil.RequiresLinux(t)
 
 	cdAddress := sb.ContainerdAddress()
 	if cdAddress == "" || sb.Snapshotter() != "stargz" {
@@ -3257,7 +3256,7 @@ func testStargzLazyInlineCacheImportExport(t *testing.T, sb integration.Sandbox)
 }
 
 func testStargzLazyPull(t *testing.T, sb integration.Sandbox) {
-	requiresLinux(t)
+	testutil.RequiresLinux(t)
 
 	cdAddress := sb.ContainerdAddress()
 	if cdAddress == "" || sb.Snapshotter() != "stargz" {
@@ -3382,7 +3381,7 @@ func testStargzLazyPull(t *testing.T, sb integration.Sandbox) {
 
 func testLazyImagePush(t *testing.T, sb integration.Sandbox) {
 	integration.SkipIfDockerd(t, sb, "direct push")
-	requiresLinux(t)
+	testutil.RequiresLinux(t)
 
 	cdAddress := sb.ContainerdAddress()
 	if cdAddress == "" {
@@ -3682,7 +3681,7 @@ func testZstdRegistryCacheImportExport(t *testing.T, sb integration.Sandbox) {
 }
 
 func testBasicCacheImportExport(t *testing.T, sb integration.Sandbox, cacheOptionsEntryImport, cacheOptionsEntryExport []CacheOptionsEntry) {
-	requiresLinux(t)
+	testutil.RequiresLinux(t)
 	c, err := New(sb.Context(), sb.Address())
 	require.NoError(t, err)
 	defer c.Close()
@@ -3810,7 +3809,7 @@ func testBasicLocalCacheImportExport(t *testing.T, sb integration.Sandbox) {
 
 func testBasicInlineCacheImportExport(t *testing.T, sb integration.Sandbox) {
 	integration.SkipIfDockerd(t, sb, "direct push")
-	requiresLinux(t)
+	testutil.RequiresLinux(t)
 	registry, err := sb.NewRegistry()
 	if errors.Is(err, integration.ErrRequirements) {
 		t.Skip(err.Error())
@@ -3998,7 +3997,7 @@ func readFileInImage(ctx context.Context, c *Client, ref, path string) ([]byte, 
 }
 
 func testCachedMounts(t *testing.T, sb integration.Sandbox) {
-	requiresLinux(t)
+	testutil.RequiresLinux(t)
 	c, err := New(sb.Context(), sb.Address())
 	require.NoError(t, err)
 	defer c.Close()
@@ -4063,7 +4062,7 @@ func testCachedMounts(t *testing.T, sb integration.Sandbox) {
 }
 
 func testSharedCacheMounts(t *testing.T, sb integration.Sandbox) {
-	requiresLinux(t)
+	testutil.RequiresLinux(t)
 	c, err := New(sb.Context(), sb.Address())
 	require.NoError(t, err)
 	defer c.Close()
@@ -4088,7 +4087,7 @@ func testSharedCacheMounts(t *testing.T, sb integration.Sandbox) {
 
 // #2334
 func testSharedCacheMountsNoScratch(t *testing.T, sb integration.Sandbox) {
-	requiresLinux(t)
+	testutil.RequiresLinux(t)
 	c, err := New(sb.Context(), sb.Address())
 	require.NoError(t, err)
 	defer c.Close()
@@ -4112,7 +4111,7 @@ func testSharedCacheMountsNoScratch(t *testing.T, sb integration.Sandbox) {
 }
 
 func testLockedCacheMounts(t *testing.T, sb integration.Sandbox) {
-	requiresLinux(t)
+	testutil.RequiresLinux(t)
 	c, err := New(sb.Context(), sb.Address())
 	require.NoError(t, err)
 	defer c.Close()
@@ -4136,7 +4135,7 @@ func testLockedCacheMounts(t *testing.T, sb integration.Sandbox) {
 }
 
 func testDuplicateCacheMount(t *testing.T, sb integration.Sandbox) {
-	requiresLinux(t)
+	testutil.RequiresLinux(t)
 	c, err := New(sb.Context(), sb.Address())
 	require.NoError(t, err)
 	defer c.Close()
@@ -4155,7 +4154,7 @@ func testDuplicateCacheMount(t *testing.T, sb integration.Sandbox) {
 }
 
 func testRunCacheWithMounts(t *testing.T, sb integration.Sandbox) {
-	requiresLinux(t)
+	testutil.RequiresLinux(t)
 	c, err := New(sb.Context(), sb.Address())
 	require.NoError(t, err)
 	defer c.Close()
@@ -4182,7 +4181,7 @@ func testRunCacheWithMounts(t *testing.T, sb integration.Sandbox) {
 }
 
 func testCacheMountNoCache(t *testing.T, sb integration.Sandbox) {
-	requiresLinux(t)
+	testutil.RequiresLinux(t)
 	c, err := New(sb.Context(), sb.Address())
 	require.NoError(t, err)
 	defer c.Close()
@@ -4220,7 +4219,7 @@ func testCacheMountNoCache(t *testing.T, sb integration.Sandbox) {
 }
 
 func testCopyFromEmptyImage(t *testing.T, sb integration.Sandbox) {
-	requiresLinux(t)
+	testutil.RequiresLinux(t)
 	c, err := New(sb.Context(), sb.Address())
 	require.NoError(t, err)
 	defer c.Close()
@@ -4257,7 +4256,7 @@ func testCopyFromEmptyImage(t *testing.T, sb integration.Sandbox) {
 // containerd/containerd#2119
 func testDuplicateWhiteouts(t *testing.T, sb integration.Sandbox) {
 	integration.SkipIfDockerd(t, sb, "oci exporter")
-	requiresLinux(t)
+	testutil.RequiresLinux(t)
 	c, err := New(sb.Context(), sb.Address())
 	require.NoError(t, err)
 	defer c.Close()
@@ -4329,7 +4328,7 @@ func testDuplicateWhiteouts(t *testing.T, sb integration.Sandbox) {
 // #276
 func testWhiteoutParentDir(t *testing.T, sb integration.Sandbox) {
 	integration.SkipIfDockerd(t, sb, "oci exporter")
-	requiresLinux(t)
+	testutil.RequiresLinux(t)
 	c, err := New(sb.Context(), sb.Address())
 	require.NoError(t, err)
 	defer c.Close()
@@ -4588,7 +4587,7 @@ func testSourceMap(t *testing.T, sb integration.Sandbox) {
 }
 
 func testSourceMapFromRef(t *testing.T, sb integration.Sandbox) {
-	requiresLinux(t)
+	testutil.RequiresLinux(t)
 	c, err := New(sb.Context(), sb.Address())
 	require.NoError(t, err)
 	defer c.Close()
@@ -4756,7 +4755,7 @@ func testProxyEnv(t *testing.T, sb integration.Sandbox) {
 }
 
 func testMergeOp(t *testing.T, sb integration.Sandbox) {
-	requiresLinux(t)
+	testutil.RequiresLinux(t)
 
 	c, err := New(sb.Context(), sb.Address())
 	require.NoError(t, err)
@@ -4869,7 +4868,7 @@ func testMergeOpCacheMax(t *testing.T, sb integration.Sandbox) {
 func testMergeOpCache(t *testing.T, sb integration.Sandbox, mode string) {
 	t.Helper()
 	integration.SkipIfDockerd(t, sb, "direct push")
-	requiresLinux(t)
+	testutil.RequiresLinux(t)
 
 	cdAddress := sb.ContainerdAddress()
 	if cdAddress == "" {
@@ -5336,12 +5335,6 @@ func chainRunShells(base llb.State, cmdss ...[]string) llb.State {
 	return base
 }
 
-func requiresLinux(t *testing.T) {
-	if runtime.GOOS != "linux" {
-		t.Skipf("unsupported GOOS: %s", runtime.GOOS)
-	}
-}
-
 // ensurePruneAll tries to ensure Prune completes with retries.
 // Current cache implementation defers release-related logic using goroutine so
 // there can be situation where a build has finished but the following prune doesn't
@@ -5445,7 +5438,7 @@ loop0:
 }
 
 func testInvalidExporter(t *testing.T, sb integration.Sandbox) {
-	requiresLinux(t)
+	testutil.RequiresLinux(t)
 	c, err := New(sb.Context(), sb.Address())
 	require.NoError(t, err)
 	defer c.Close()
@@ -5573,7 +5566,7 @@ func testParallelLocalBuilds(t *testing.T, sb integration.Sandbox) {
 // mountpoints are not absolute. Relative paths should be transformed to
 // absolute points based on the llb.State's current working directory.
 func testRelativeMountpoint(t *testing.T, sb integration.Sandbox) {
-	requiresLinux(t)
+	testutil.RequiresLinux(t)
 	c, err := New(sb.Context(), sb.Address())
 	require.NoError(t, err)
 	defer c.Close()
@@ -5608,7 +5601,7 @@ func testRelativeMountpoint(t *testing.T, sb integration.Sandbox) {
 
 // moby/buildkit#2476
 func testBuildInfoExporter(t *testing.T, sb integration.Sandbox) {
-	requiresLinux(t)
+	testutil.RequiresLinux(t)
 	c, err := New(sb.Context(), sb.Address())
 	require.NoError(t, err)
 	defer c.Close()
@@ -5663,7 +5656,7 @@ func testBuildInfoExporter(t *testing.T, sb integration.Sandbox) {
 
 // moby/buildkit#2476
 func testBuildInfoInline(t *testing.T, sb integration.Sandbox) {
-	requiresLinux(t)
+	testutil.RequiresLinux(t)
 	c, err := New(sb.Context(), sb.Address())
 	require.NoError(t, err)
 	defer c.Close()
@@ -5754,7 +5747,7 @@ func testBuildInfoInline(t *testing.T, sb integration.Sandbox) {
 }
 
 func testBuildInfoNoExport(t *testing.T, sb integration.Sandbox) {
-	requiresLinux(t)
+	testutil.RequiresLinux(t)
 	c, err := New(sb.Context(), sb.Address())
 	require.NoError(t, err)
 	defer c.Close()

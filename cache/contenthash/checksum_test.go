@@ -23,6 +23,7 @@ import (
 	"github.com/moby/buildkit/snapshot"
 	containerdsnapshot "github.com/moby/buildkit/snapshot/containerd"
 	"github.com/moby/buildkit/util/leaseutil"
+	"github.com/moby/buildkit/util/testutil"
 	"github.com/moby/buildkit/util/winlayers"
 	digest "github.com/opencontainers/go-digest"
 	"github.com/pkg/errors"
@@ -41,6 +42,8 @@ const (
 )
 
 func TestChecksumSymlinkNoParentScan(t *testing.T) {
+	testutil.RequiresLinuxSupport(t, "container bind-mount")
+	testutil.RequiresRoot(t)
 	t.Parallel()
 	tmpdir, err := os.MkdirTemp("", "buildkit-state")
 	require.NoError(t, err)
@@ -70,6 +73,8 @@ func TestChecksumSymlinkNoParentScan(t *testing.T) {
 }
 
 func TestChecksumHardlinks(t *testing.T) {
+	testutil.RequiresLinuxSupport(t, "container bind-mount")
+	testutil.RequiresRoot(t)
 	t.Parallel()
 	tmpdir, err := os.MkdirTemp("", "buildkit-state")
 	require.NoError(t, err)
@@ -153,6 +158,8 @@ func TestChecksumHardlinks(t *testing.T) {
 }
 
 func TestChecksumWildcardOrFilter(t *testing.T) {
+	testutil.RequiresLinuxSupport(t, "container bind-mount")
+	testutil.RequiresRoot(t)
 	t.Parallel()
 	tmpdir, err := os.MkdirTemp("", "buildkit-state")
 	require.NoError(t, err)
@@ -230,6 +237,8 @@ func TestChecksumWildcardWithBadMountable(t *testing.T) {
 }
 
 func TestSymlinksNoFollow(t *testing.T) {
+	testutil.RequiresLinuxSupport(t, "container bind-mount")
+	testutil.RequiresRoot(t)
 	t.Parallel()
 	tmpdir, err := os.MkdirTemp("", "buildkit-state")
 	require.NoError(t, err)
@@ -289,6 +298,8 @@ func TestSymlinksNoFollow(t *testing.T) {
 }
 
 func TestChecksumBasicFile(t *testing.T) {
+	testutil.RequiresLinuxSupport(t, "container bind-mount")
+	testutil.RequiresRoot(t)
 	t.Parallel()
 	tmpdir, err := os.MkdirTemp("", "buildkit-state")
 	require.NoError(t, err)
@@ -439,6 +450,8 @@ func TestChecksumBasicFile(t *testing.T) {
 }
 
 func TestChecksumIncludeExclude(t *testing.T) {
+	testutil.RequiresLinuxSupport(t, "container bind-mount")
+	testutil.RequiresRoot(t)
 	t.Parallel()
 
 	t.Run("wildcard_false", func(t *testing.T) { testChecksumIncludeExclude(t, false) })
@@ -582,6 +595,8 @@ func testChecksumIncludeExclude(t *testing.T, wildcard bool) {
 }
 
 func TestChecksumIncludeDoubleStar(t *testing.T) {
+	testutil.RequiresLinuxSupport(t, "container bind-mount")
+	testutil.RequiresRoot(t)
 	t.Parallel()
 	tmpdir, err := os.MkdirTemp("", "buildkit-state")
 	require.NoError(t, err)
@@ -650,6 +665,8 @@ func TestChecksumIncludeDoubleStar(t *testing.T) {
 }
 
 func TestChecksumIncludeSymlink(t *testing.T) {
+	testutil.RequiresLinuxSupport(t, "container bind-mount")
+	testutil.RequiresRoot(t)
 	t.Parallel()
 	tmpdir, err := os.MkdirTemp("", "buildkit-state")
 	require.NoError(t, err)
@@ -903,6 +920,8 @@ func TestChecksumUnorderedFiles(t *testing.T) {
 }
 
 func TestSymlinkInPathScan(t *testing.T) {
+	testutil.RequiresLinuxSupport(t, "container bind-mount")
+	testutil.RequiresRoot(t)
 	t.Parallel()
 	tmpdir, err := os.MkdirTemp("", "buildkit-state")
 	require.NoError(t, err)
@@ -934,6 +953,8 @@ func TestSymlinkInPathScan(t *testing.T) {
 }
 
 func TestSymlinkNeedsScan(t *testing.T) {
+	testutil.RequiresLinuxSupport(t, "container bind-mount")
+	testutil.RequiresRoot(t)
 	t.Parallel()
 	tmpdir, err := os.MkdirTemp("", "buildkit-state")
 	require.NoError(t, err)
@@ -967,6 +988,8 @@ func TestSymlinkNeedsScan(t *testing.T) {
 }
 
 func TestSymlinkAbsDirSuffix(t *testing.T) {
+	testutil.RequiresLinuxSupport(t, "container bind-mount")
+	testutil.RequiresRoot(t)
 	t.Parallel()
 	tmpdir, err := os.MkdirTemp("", "buildkit-state")
 	require.NoError(t, err)
@@ -994,6 +1017,8 @@ func TestSymlinkAbsDirSuffix(t *testing.T) {
 }
 
 func TestSymlinkThroughParent(t *testing.T) {
+	testutil.RequiresLinuxSupport(t, "container bind-mount")
+	testutil.RequiresRoot(t)
 	t.Parallel()
 	tmpdir, err := os.MkdirTemp("", "buildkit-state")
 	require.NoError(t, err)
@@ -1112,6 +1137,8 @@ func TestSymlinkInPathHandleChange(t *testing.T) {
 }
 
 func TestPersistence(t *testing.T) {
+	testutil.RequiresLinuxSupport(t, "container bind-mount")
+	testutil.RequiresRoot(t)
 	t.Parallel()
 	tmpdir, err := os.MkdirTemp("", "buildkit-state")
 	require.NoError(t, err)

@@ -23,6 +23,7 @@ import (
 	containerdsnapshot "github.com/moby/buildkit/snapshot/containerd"
 	"github.com/moby/buildkit/source"
 	"github.com/moby/buildkit/util/leaseutil"
+	"github.com/moby/buildkit/util/testutil"
 	"github.com/moby/buildkit/util/winlayers"
 	"github.com/pkg/errors"
 	"github.com/stretchr/testify/assert"
@@ -39,14 +40,14 @@ func init() {
 func TestRepeatedFetch(t *testing.T) {
 	testRepeatedFetch(t, false)
 }
+
 func TestRepeatedFetchKeepGitDir(t *testing.T) {
 	testRepeatedFetch(t, true)
 }
 
 func testRepeatedFetch(t *testing.T, keepGitDir bool) {
-	if runtime.GOOS == "windows" {
-		t.Skip("Depends on unimplemented containerd bind-mount support on Windows")
-	}
+	testutil.RequiresLinuxSupport(t, "containerd bind-mount")
+	testutil.RequiresRoot(t)
 
 	t.Parallel()
 	ctx := context.TODO()
@@ -158,14 +159,14 @@ func testRepeatedFetch(t *testing.T, keepGitDir bool) {
 func TestFetchBySHA(t *testing.T) {
 	testFetchBySHA(t, false)
 }
+
 func TestFetchBySHAKeepGitDir(t *testing.T) {
 	testFetchBySHA(t, true)
 }
 
 func testFetchBySHA(t *testing.T, keepGitDir bool) {
-	if runtime.GOOS == "windows" {
-		t.Skip("Depends on unimplemented containerd bind-mount support on Windows")
-	}
+	testutil.RequiresLinuxSupport(t, "containerd bind-mount")
+	testutil.RequiresRoot(t)
 
 	t.Parallel()
 	ctx := namespaces.WithNamespace(context.Background(), "buildkit-test")
@@ -249,9 +250,8 @@ func TestFetchByAnnotatedTagKeepGitDir(t *testing.T) {
 }
 
 func testFetchByTag(t *testing.T, tag, expectedCommitSubject string, isAnnotatedTag, hasFoo13File, keepGitDir bool) {
-	if runtime.GOOS == "windows" {
-		t.Skip("Depends on unimplemented containerd bind-mount support on Windows")
-	}
+	testutil.RequiresLinuxSupport(t, "containerd bind-mount")
+	testutil.RequiresRoot(t)
 
 	t.Parallel()
 	ctx := namespaces.WithNamespace(context.Background(), "buildkit-test")
@@ -343,9 +343,8 @@ func TestMultipleReposKeepGitDir(t *testing.T) {
 }
 
 func testMultipleRepos(t *testing.T, keepGitDir bool) {
-	if runtime.GOOS == "windows" {
-		t.Skip("Depends on unimplemented containerd bind-mount support on Windows")
-	}
+	testutil.RequiresLinuxSupport(t, "containerd bind-mount")
+	testutil.RequiresRoot(t)
 
 	t.Parallel()
 	ctx := namespaces.WithNamespace(context.Background(), "buildkit-test")
@@ -440,9 +439,8 @@ func testMultipleRepos(t *testing.T, keepGitDir bool) {
 }
 
 func TestCredentialRedaction(t *testing.T) {
-	if runtime.GOOS == "windows" {
-		t.Skip("Depends on unimplemented containerd bind-mount support on Windows")
-	}
+	testutil.RequiresLinuxSupport(t, "containerd bind-mount")
+	testutil.RequiresRoot(t)
 
 	t.Parallel()
 	ctx := namespaces.WithNamespace(context.Background(), "buildkit-test")
@@ -467,14 +465,14 @@ func TestCredentialRedaction(t *testing.T) {
 func TestSubdir(t *testing.T) {
 	testSubdir(t, false)
 }
+
 func TestSubdirKeepGitDir(t *testing.T) {
 	testSubdir(t, true)
 }
 
 func testSubdir(t *testing.T, keepGitDir bool) {
-	if runtime.GOOS == "windows" {
-		t.Skip("Depends on unimplemented containerd bind-mount support on Windows")
-	}
+	testutil.RequiresLinuxSupport(t, "containerd bind-mount")
+	testutil.RequiresRoot(t)
 
 	t.Parallel()
 	ctx := context.TODO()

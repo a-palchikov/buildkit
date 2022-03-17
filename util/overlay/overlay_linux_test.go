@@ -16,6 +16,7 @@ import (
 	"github.com/containerd/continuity/fs"
 	"github.com/containerd/continuity/fs/fstest"
 	"github.com/pkg/errors"
+	"github.com/moby/buildkit/util/testutil"
 )
 
 // This test file contains tests that are required in continuity project.
@@ -27,6 +28,8 @@ import (
 // https://github.com/containerd/continuity/blob/v0.1.0/fs/diff_test.go#L46-L73
 // Copyright The containerd Authors.
 func TestSimpleDiff(t *testing.T) {
+	testutil.RequiresLinuxSupport(t, "containerd bind-mount")
+	testutil.RequiresRoot(t)
 	l1 := fstest.Apply(
 		fstest.CreateDir("/etc", 0755),
 		fstest.CreateFile("/etc/hosts", []byte("mydomain 10.0.0.1"), 0644),
@@ -55,6 +58,8 @@ func TestSimpleDiff(t *testing.T) {
 }
 
 func TestRenameDiff(t *testing.T) {
+	testutil.RequiresLinuxSupport(t, "containerd bind-mount")
+	testutil.RequiresRoot(t)
 	l1 := fstest.Apply(
 		fstest.CreateDir("/dir1", 0755),
 		fstest.CreateFile("/dir1/f1", []byte("#####"), 0644),
@@ -100,6 +105,8 @@ func renameDirWithFallback(from, to string, fallback fstest.Applier) fstest.Appl
 // https://github.com/containerd/continuity/blob/v0.1.0/fs/diff_test.go#L75-L89
 // Copyright The containerd Authors.
 func TestEmptyFileDiff(t *testing.T) {
+	testutil.RequiresLinuxSupport(t, "containerd bind-mount")
+	testutil.RequiresRoot(t)
 	tt := time.Now().Truncate(time.Second)
 	l1 := fstest.Apply(
 		fstest.CreateDir("/etc", 0755),
@@ -118,6 +125,8 @@ func TestEmptyFileDiff(t *testing.T) {
 // https://github.com/containerd/continuity/blob/v0.1.0/fs/diff_test.go#L91-L111
 // Copyright The containerd Authors.
 func TestNestedDeletion(t *testing.T) {
+	testutil.RequiresLinuxSupport(t, "containerd bind-mount")
+	testutil.RequiresRoot(t)
 	l1 := fstest.Apply(
 		fstest.CreateDir("/d0", 0755),
 		fstest.CreateDir("/d1", 0755),
@@ -142,6 +151,8 @@ func TestNestedDeletion(t *testing.T) {
 // https://github.com/containerd/continuity/blob/v0.1.0/fs/diff_test.go#L113-L134
 // Copyright The containerd Authors.
 func TestDirectoryReplace(t *testing.T) {
+	testutil.RequiresRoot(t)
+	testutil.RequiresLinuxSupport(t, "container bind-mount")
 	l1 := fstest.Apply(
 		fstest.CreateDir("/dir1", 0755),
 		fstest.CreateFile("/dir1/f1", []byte("#####"), 0644),
@@ -167,6 +178,8 @@ func TestDirectoryReplace(t *testing.T) {
 // https://github.com/containerd/continuity/blob/v0.1.0/fs/diff_test.go#L136-L152
 // Copyright The containerd Authors.
 func TestRemoveDirectoryTree(t *testing.T) {
+	testutil.RequiresLinuxSupport(t, "containerd bind-mount")
+	testutil.RequiresRoot(t)
 	l1 := fstest.Apply(
 		fstest.CreateDir("/dir1/dir2/dir3", 0755),
 		fstest.CreateFile("/dir1/f1", []byte("f1"), 0644),
@@ -188,6 +201,8 @@ func TestRemoveDirectoryTree(t *testing.T) {
 // https://github.com/containerd/continuity/blob/v0.1.0/fs/diff_test.go#L154-L172
 // Copyright The containerd Authors.
 func TestRemoveDirectoryTreeWithDash(t *testing.T) {
+	testutil.RequiresLinuxSupport(t, "containerd bind-mount")
+	testutil.RequiresRoot(t)
 	l1 := fstest.Apply(
 		fstest.CreateDir("/dir1/dir2/dir3", 0755),
 		fstest.CreateFile("/dir1/f1", []byte("f1"), 0644),
@@ -211,6 +226,8 @@ func TestRemoveDirectoryTreeWithDash(t *testing.T) {
 // https://github.com/containerd/continuity/blob/v0.1.0/fs/diff_test.go#L174-L192
 // Copyright The containerd Authors.
 func TestFileReplace(t *testing.T) {
+	testutil.RequiresLinuxSupport(t, "containerd bind-mount")
+	testutil.RequiresRoot(t)
 	l1 := fstest.Apply(
 		fstest.CreateFile("/dir1", []byte("a file, not a directory"), 0644),
 	)
@@ -234,6 +251,8 @@ func TestFileReplace(t *testing.T) {
 // https://github.com/containerd/continuity/blob/v0.1.0/fs/diff_test.go#L194-L219
 // Copyright The containerd Authors.
 func TestParentDirectoryPermission(t *testing.T) {
+	testutil.RequiresLinuxSupport(t, "containerd bind-mount")
+	testutil.RequiresRoot(t)
 	l1 := fstest.Apply(
 		fstest.CreateDir("/dir1", 0700),
 		fstest.CreateDir("/dir2", 0751),
@@ -263,6 +282,8 @@ func TestParentDirectoryPermission(t *testing.T) {
 // https://github.com/containerd/continuity/blob/v0.1.0/fs/diff_test.go#L221-L269
 // Copyright The containerd Authors.
 func TestUpdateWithSameTime(t *testing.T) {
+	testutil.RequiresLinuxSupport(t, "containerd bind-mount")
+	testutil.RequiresRoot(t)
 	tt := time.Now().Truncate(time.Second)
 	t1 := tt.Add(5 * time.Nanosecond)
 	t2 := tt.Add(6 * time.Nanosecond)
@@ -316,6 +337,8 @@ func TestUpdateWithSameTime(t *testing.T) {
 // Copyright The containerd Authors.
 // buildkit#172
 func TestLchtimes(t *testing.T) {
+	testutil.RequiresLinuxSupport(t, "containerd bind-mount")
+	testutil.RequiresRoot(t)
 	mtimes := []time.Time{
 		time.Unix(0, 0),  // nsec is 0
 		time.Unix(0, 42), // nsec > 0

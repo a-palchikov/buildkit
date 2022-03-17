@@ -25,6 +25,7 @@ import (
 	"github.com/hashicorp/go-multierror"
 	"github.com/moby/buildkit/identity"
 	"github.com/moby/buildkit/util/leaseutil"
+	"github.com/moby/buildkit/util/testutil"
 	"github.com/stretchr/testify/require"
 	bolt "go.etcd.io/bbolt"
 )
@@ -123,7 +124,8 @@ func TestMerge(t *testing.T) {
 		t.Run(snName, func(t *testing.T) {
 			t.Parallel()
 			if snName == "overlayfs" {
-				requireRoot(t)
+				testutil.RequiresRoot(t)
+				testutil.RequiresLinuxSupport(t, "container bind-mount")
 			}
 
 			ctx, sn, cleanup, err := newSnapshotter(context.Background(), snName)
@@ -328,7 +330,8 @@ func TestHardlinks(t *testing.T) {
 		t.Run(snName, func(t *testing.T) {
 			t.Parallel()
 			if snName == "overlayfs" {
-				requireRoot(t)
+				testutil.RequiresRoot(t)
+				testutil.RequiresLinuxSupport(t, "container bind-mount")
 			}
 
 			ctx, sn, cleanup, err := newSnapshotter(context.Background(), snName)
@@ -394,7 +397,8 @@ func TestUsage(t *testing.T) {
 		t.Run(snName, func(t *testing.T) {
 			t.Parallel()
 			if snName == "overlayfs" {
-				requireRoot(t)
+				testutil.RequiresRoot(t)
+				testutil.RequiresLinuxSupport(t, "container bind-mount")
 			}
 
 			ctx, sn, cleanup, err := newSnapshotter(context.Background(), snName)
@@ -619,11 +623,4 @@ func statPath(ctx context.Context, t *testing.T, sn *mergeSnapshotter, key, path
 	st = tryStatPath(ctx, t, sn, key, path)
 	require.NotNil(t, st)
 	return st
-}
-
-func requireRoot(t *testing.T) {
-	t.Helper()
-	if os.Getuid() != 0 {
-		t.Skip("test requires root")
-	}
 }

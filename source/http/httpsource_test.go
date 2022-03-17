@@ -4,7 +4,6 @@ import (
 	"context"
 	"os"
 	"path/filepath"
-	"runtime"
 	"testing"
 
 	"github.com/containerd/containerd/content/local"
@@ -20,6 +19,7 @@ import (
 	containerdsnapshot "github.com/moby/buildkit/snapshot/containerd"
 	"github.com/moby/buildkit/source"
 	"github.com/moby/buildkit/util/leaseutil"
+	"github.com/moby/buildkit/util/testutil"
 	"github.com/moby/buildkit/util/testutil/httpserver"
 	"github.com/moby/buildkit/util/winlayers"
 	digest "github.com/opencontainers/go-digest"
@@ -28,9 +28,8 @@ import (
 )
 
 func TestHTTPSource(t *testing.T) {
-	if runtime.GOOS == "windows" {
-		t.Skip("Depends on unimplemented containerd bind-mount support on Windows")
-	}
+	testutil.RequiresLinuxSupport(t, "containerd bind-mount")
+	testutil.RequiresRoot(t)
 
 	t.Parallel()
 	ctx := context.TODO()
@@ -151,9 +150,8 @@ func TestHTTPSource(t *testing.T) {
 }
 
 func TestHTTPDefaultName(t *testing.T) {
-	if runtime.GOOS == "windows" {
-		t.Skip("Depends on unimplemented containerd bind-mount support on Windows")
-	}
+	testutil.RequiresLinuxSupport(t, "containerd bind-mount")
+	testutil.RequiresRoot(t)
 
 	t.Parallel()
 	ctx := context.TODO()
@@ -229,9 +227,8 @@ func TestHTTPInvalidURL(t *testing.T) {
 }
 
 func TestHTTPChecksum(t *testing.T) {
-	if runtime.GOOS == "windows" {
-		t.Skip("Depends on unimplemented containerd bind-mount support on Windows")
-	}
+	testutil.RequiresLinuxSupport(t, "containerd bind-mount")
+	testutil.RequiresRoot(t)
 
 	t.Parallel()
 	ctx := context.TODO()

@@ -12,6 +12,7 @@ import (
 	"github.com/containerd/containerd/namespaces"
 	"github.com/containerd/continuity/fs/fstest"
 	"github.com/moby/buildkit/client/llb"
+	"github.com/moby/buildkit/util/testutil"
 	"github.com/moby/buildkit/util/testutil/integration"
 	digest "github.com/opencontainers/go-digest"
 	ocispecs "github.com/opencontainers/image-spec/specs-go/v1"
@@ -1192,7 +1193,7 @@ func (tc verifyContents) Run(t *testing.T, sb integration.Sandbox) {
 		t.Skip("rootless")
 	}
 
-	requiresLinux(t)
+	testutil.RequiresLinux(t)
 	cdAddress := sb.ContainerdAddress()
 
 	ctx := sb.Context()
@@ -1310,7 +1311,7 @@ func (tc verifyBlobReuse) Name() string {
 }
 
 func (tc verifyBlobReuse) Run(t *testing.T, sb integration.Sandbox) {
-	requiresLinux(t)
+	testutil.RequiresLinux(t)
 
 	cdAddress := sb.ContainerdAddress()
 	if cdAddress == "" {
