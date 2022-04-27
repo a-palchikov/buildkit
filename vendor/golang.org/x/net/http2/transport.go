@@ -25,6 +25,7 @@ import (
 	"net/http/httptrace"
 	"net/textproto"
 	"os"
+	"runtime/debug"
 	"sort"
 	"strconv"
 	"strings"
@@ -170,7 +171,6 @@ func (t *Transport) pingTimeout() time.Duration {
 		return 15 * time.Second
 	}
 	return t.PingTimeout
-
 }
 
 // ConfigureTransport configures a net/http HTTP/1 Transport to use HTTP/2.
@@ -301,6 +301,13 @@ type ClientConn struct {
 	werr error        // first write error that has occurred
 	hbuf bytes.Buffer // HPACK encoder writes into this
 	henc *hpack.Encoder
+}
+
+func (r *ClientConn) String() string {
+	var b strings.Builder
+	fmt.Fprintf(&b, "clientConn(%s->%s,singleUse(%v))",
+		r.tconn.LocalAddr(), r.tconn.RemoteAddr(), r.singleUse)
+	return b.String()
 }
 
 // clientStream is the state for a single HTTP/2 stream. One of these
@@ -595,6 +602,9 @@ func (t *Transport) dialClientConn(ctx context.Context, addr string, singleUse b
 	if err != nil {
 		return nil, err
 	}
+	if VerboseLogs {
+		t.vlogf("http2: Transport dial client conn to %s", addr)
+	}
 	return t.newClientConn(tconn, singleUse)
 }
 
@@ -650,6 +660,7 @@ func (t *Transport) NewClientConn(c net.Conn) (*ClientConn, error) {
 }
 
 func (t *Transport) newClientConn(c net.Conn, singleUse bool) (*ClientConn, error) {
+	started := time.Now()
 	cc := &ClientConn{
 		t:                     t,
 		tconn:                 c,
@@ -670,7 +681,7 @@ func (t *Transport) newClientConn(c net.Conn, singleUse bool) (*ClientConn, erro
 		cc.idleTimer = time.AfterFunc(d, cc.onIdleTimeout)
 	}
 	if VerboseLogs {
-		t.vlogf("http2: Transport creating client conn %p to %v", cc, c.RemoteAddr())
+		t.vlogf("http2: Transport creating client conn %s", cc)
 	}
 
 	cc.cond = sync.NewCond(&cc.mu)
@@ -712,16 +723,21 @@ func (t *Transport) newClientConn(c net.Conn, singleUse bool) (*ClientConn, erro
 		initialSettings = append(initialSettings, Setting{ID: SettingMaxHeaderListSize, Val: max})
 	}
 
+	if VerboseLogs {
+		t.vlogf("http2: Transport writes clientPreface from \n%s", debug.Stack())
+	}
 	cc.bw.Write(clientPreface)
 	cc.fr.WriteSettings(initialSettings...)
 	cc.fr.WriteWindowUpdate(0, transportDefaultConnFlow)
 	cc.inflow.add(transportDefaultConnFlow + initialWindowSize)
 	cc.bw.Flush()
 	if cc.werr != nil {
+		t.vlogf("http2: Transport failed to write preface to %v: %v", c.RemoteAddr(), cc.werr)
 		cc.Close()
 		return nil, cc.werr
 	}
 
+	t.vlogf("http2: Transport wrote preface to %v after %v", c.RemoteAddr(), time.Since(started))
 	go cc.readLoop()
 	return cc, nil
 }
@@ -1559,7 +1575,7 @@ func (cs *clientStream) writeRequestBody(req *http.Request) (err error) {
 
 	var sawEOF bool
 	for !sawEOF {
-		n, err := body.Read(buf[:len(buf)])
+		n, err := body.Read(buf[:])
 		if hasContentLen {
 			remainLen -= int64(n)
 			if remainLen == 0 && err == nil {
@@ -1692,7 +1708,6 @@ func (cs *clientStream) awaitFlowControl(maxBytes int) (taken int32, err error) 
 		if a := cs.flow.available(); a > 0 {
 			take := a
 			if int(take) > maxBytes {
-
 				take = int32(maxBytes) // can't truncate int; take is int32
 			}
 			if take > int32(cc.maxFrameSize) {

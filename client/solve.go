@@ -18,6 +18,7 @@ import (
 	"github.com/moby/buildkit/session"
 	sessioncontent "github.com/moby/buildkit/session/content"
 	"github.com/moby/buildkit/session/filesync"
+	"github.com/moby/buildkit/session/filesync/docker"
 	"github.com/moby/buildkit/session/grpchijack"
 	"github.com/moby/buildkit/solver/pb"
 	"github.com/moby/buildkit/util/bklog"
@@ -148,6 +149,14 @@ func (c *Client) solve(ctx context.Context, def *llb.Definition, runGateway runG
 				return nil, errors.Errorf("output file writer is required for %s exporter", ex.Type)
 			}
 			s.Allow(filesync.NewFSSyncTarget(ex.Output))
+		case ExporterDockerDaemon:
+			if ex.OutputDir != "" {
+				return nil, errors.Errorf("output directory %s is not supported by %s exporter", ex.OutputDir, ex.Type)
+			}
+			if ex.Output != nil {
+				return nil, errors.Errorf("output file writer is not required for %s exporter", ex.Type)
+			}
+			s.Allow(docker.NewSyncTarget())
 		default:
 			if ex.Output != nil {
 				return nil, errors.Errorf("output file writer is not supported by %s exporter", ex.Type)

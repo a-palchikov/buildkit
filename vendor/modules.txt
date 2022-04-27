@@ -53,7 +53,7 @@ github.com/containerd/cgroups/stats/v1
 # github.com/containerd/console v1.0.3
 ## explicit; go 1.13
 github.com/containerd/console
-# github.com/containerd/containerd v1.6.3-0.20220401172941-5ff8fce1fcc6
+# github.com/containerd/containerd v1.6.3-0.20220401172941-5ff8fce1fcc6 => github.com/a-palchikov/containerd v0.0.0-20220427130444-a8d79c77fa78
 ## explicit; go 1.17
 github.com/containerd/containerd
 github.com/containerd/containerd/api/services/containers/v1
@@ -100,6 +100,7 @@ github.com/containerd/containerd/namespaces
 github.com/containerd/containerd/oci
 github.com/containerd/containerd/pkg/cap
 github.com/containerd/containerd/pkg/dialer
+github.com/containerd/containerd/pkg/kmutex
 github.com/containerd/containerd/pkg/seccomp
 github.com/containerd/containerd/pkg/seed
 github.com/containerd/containerd/pkg/userns
@@ -360,7 +361,9 @@ github.com/ishidawataru/sctp
 # github.com/klauspost/compress v1.15.1
 ## explicit; go 1.15
 github.com/klauspost/compress
+github.com/klauspost/compress/flate
 github.com/klauspost/compress/fse
+github.com/klauspost/compress/gzip
 github.com/klauspost/compress/huff0
 github.com/klauspost/compress/internal/snapref
 github.com/klauspost/compress/zstd
@@ -570,7 +573,7 @@ golang.org/x/crypto/nacl/sign
 golang.org/x/crypto/ssh
 golang.org/x/crypto/ssh/agent
 golang.org/x/crypto/ssh/internal/bcrypt_pbkdf
-# golang.org/x/net v0.0.0-20211216030914-fe4d6282115f
+# golang.org/x/net v0.0.0-20211216030914-fe4d6282115f => github.com/a-palchikov/net v0.0.0-20220427131228-c37ebf3912fc
 ## explicit; go 1.17
 golang.org/x/net/context
 golang.org/x/net/context/ctxhttp
@@ -699,4 +702,6 @@ google.golang.org/protobuf/types/known/wrapperspb
 # gopkg.in/yaml.v3 v3.0.0-20210107192922-496545a6307b
 ## explicit
 gopkg.in/yaml.v3
+# github.com/containerd/containerd => github.com/a-palchikov/containerd v0.0.0-20220427130444-a8d79c77fa78
 # github.com/docker/docker => github.com/docker/docker v20.10.3-0.20220224222438-c78f6963a1c0+incompatible
+# golang.org/x/net => github.com/a-palchikov/net v0.0.0-20220427131228-c37ebf3912fc
