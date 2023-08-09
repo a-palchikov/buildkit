@@ -60,7 +60,7 @@ func (e *localExporter) Config() *exporter.Config {
 	return exporter.NewConfig()
 }
 
-func (e *localExporterInstance) Export(ctx context.Context, inp *exporter.Source, sessionID string) (map[string]string, exporter.DescriptorReference, error) {
+func (e *localExporterInstance) Export(ctx context.Context, inp *exporter.Source, _ exptypes.InlineCache, sessionID string) (map[string]string, exporter.DescriptorReference, error) {
 	timeoutCtx, cancel := context.WithTimeout(ctx, 5*time.Second)
 	defer cancel()
 
