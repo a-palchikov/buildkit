@@ -13,6 +13,7 @@ import (
 	"github.com/moby/buildkit/exporter/util/epoch"
 	"github.com/moby/buildkit/session"
 	"github.com/moby/buildkit/session/filesync"
+	"github.com/moby/buildkit/util/compression"
 	"github.com/moby/buildkit/util/progress"
 	"github.com/pkg/errors"
 	"github.com/tonistiigi/fsutil"
@@ -41,12 +42,18 @@ func (e *localExporter) Resolve(ctx context.Context, opt map[string]string) (exp
 	}
 	_ = opt
 
+	li.copts, err = compression.ParseAttributes(opt)
+	if err != nil {
+		return nil, err
+	}
+
 	return li, nil
 }
 
 type localExporterInstance struct {
 	*localExporter
-	opts local.CreateFSOpts
+	opts  local.CreateFSOpts
+	copts compression.Config
 }
 
 func (e *localExporterInstance) Name() string {
@@ -156,18 +163,10 @@ func (e *localExporterInstance) Export(ctx context.Context, inp *exporter.Source
 		return nil, nil, err
 	}
 
-	comp := e.compression()
-	switch comp.Type {
-	case compression.Zstd:
-		w, err = zstdWriter(comp, w)
-		if err != nil {
-			return nil, err
-		}
-	case compression.Gzip:
-		w, err = gzipWriter(comp, w)
-		if err != nil {
-			return nil, err
-		}
+	comp, _ := e.copts.Type.Compress(ctx, e.copts)
+	w, err = comp(w, "")
+	if err != nil {
+		return nil, nil, err
 	}
 
 	report := progress.OneOff(ctx, "sending tarball")

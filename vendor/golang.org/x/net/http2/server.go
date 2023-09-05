@@ -441,7 +441,7 @@ func (s *Server) ServeConn(c net.Conn, opts *ServeConnOpts) {
 	if s.NewWriteScheduler != nil {
 		sc.writeSched = s.NewWriteScheduler()
 	} else {
-		sc.writeSched = NewPriorityWriteScheduler(nil)
+		sc.writeSched = newRoundRobinWriteScheduler()
 	}
 
 	// These start at the RFC-specified defaults. If there is a higher
@@ -891,7 +891,7 @@ func (sc *serverConn) serve() {
 	defer close(sc.doneServing) // unblocks handlers trying to send
 
 	if VerboseLogs {
-		sc.vlogf("http2: server connection from %v on %p", sc.conn.RemoteAddr(), sc.hs)
+		sc.vlogf("http2: server connection from %v on %p (addr=%s)", sc.conn.RemoteAddr(), sc.hs, sc.hs.Addr)
 	}
 
 	sc.writeFrame(FrameWriteRequest{
@@ -1009,14 +1009,6 @@ func (sc *serverConn) serve() {
 		if sentGoAway && sc.shutdownTimer == nil && (sc.goAwayCode != ErrCodeNo || gracefulShutdownComplete) {
 			sc.shutDownIn(goAwayTimeout)
 		}
-	}
-}
-
-func (sc *serverConn) awaitGracefulShutdown(sharedCh <-chan struct{}, privateCh chan struct{}) {
-	select {
-	case <-sc.doneServing:
-	case <-sharedCh:
-		close(privateCh)
 	}
 }
 
@@ -2434,7 +2426,7 @@ type requestBody struct {
 	conn          *serverConn
 	closeOnce     sync.Once // for use by Close only
 	sawEOF        bool      // for use by Read only
-	pipe          *pipe     // non-nil if we have a HTTP entity message body
+	pipe          *pipe     // non-nil if we have an HTTP entity message body
 	needsContinue bool      // need to send a 100-continue
 }
 
@@ -2574,7 +2566,8 @@ func (rws *responseWriterState) writeChunk(p []byte) (n int, err error) {
 				clen = ""
 			}
 		}
-		if clen == "" && rws.handlerDone && bodyAllowedForStatus(rws.status) && (len(p) > 0 || !isHeadResp) {
+		_, hasContentLength := rws.snapHeader["Content-Length"]
+		if !hasContentLength && clen == "" && rws.handlerDone && bodyAllowedForStatus(rws.status) && (len(p) > 0 || !isHeadResp) {
 			clen = strconv.Itoa(len(p))
 		}
 		_, hasContentType := rws.snapHeader["Content-Type"]
@@ -2779,7 +2772,7 @@ func (w *responseWriter) FlushError() error {
 		err = rws.bw.Flush()
 	} else {
 		// The bufio.Writer won't call chunkWriter.Write
-		// (writeChunk with zero bytes, so we have to do it
+		// (writeChunk with zero bytes), so we have to do it
 		// ourselves to force the HTTP response header and/or
 		// final DATA frame (with END_STREAM) to be sent.
 		_, err = chunkWriter{rws}.Write(nil)
