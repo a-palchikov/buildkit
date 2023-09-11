@@ -2,10 +2,12 @@ package local
 
 import (
 	"context"
+	"io"
 	"os"
 	"strings"
 	"time"
 
+	"github.com/hashicorp/go-multierror"
 	"github.com/moby/buildkit/cache"
 	"github.com/moby/buildkit/exporter"
 	"github.com/moby/buildkit/exporter/containerimage/exptypes"
@@ -164,10 +166,12 @@ func (e *localExporterInstance) Export(ctx context.Context, inp *exporter.Source
 	}
 
 	comp, _ := e.copts.Type.Compress(ctx, e.copts)
-	w, err = comp(w, "")
+	wc, err := comp(w, "")
 	if err != nil {
+		w.Close()
 		return nil, nil, err
 	}
+	w = writerWithClosers(w, w, wc)
 
 	report := progress.OneOff(ctx, "sending tarball")
 	if err := fsutil.WriteTar(ctx, fs, w); err != nil {
@@ -192,4 +196,26 @@ func oneOffProgress(ctx context.Context, id string) func(err error) error {
 		pw.Close()
 		return err
 	}
+}
+
+func writerWithClosers(w io.Writer, closers ...io.Closer) io.WriteCloser {
+	return writeMultiCloser{
+		Writer:  w,
+		closers: closers,
+	}
+}
+
+// Implements io.Closer
+func (r writeMultiCloser) Close() (rerr error) {
+	for _, c := range r.closers {
+		if err := c.Close(); err != nil {
+			rerr = multierror.Append(rerr, err).ErrorOrNil()
+		}
+	}
+	return rerr
+}
+
+type writeMultiCloser struct {
+	io.Writer
+	closers []io.Closer
 }
