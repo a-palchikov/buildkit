@@ -2,10 +2,12 @@ package local
 
 import (
 	"context"
+	"io"
 	"os"
 	"strings"
 	"time"
 
+	"github.com/hashicorp/go-multierror"
 	"github.com/moby/buildkit/cache"
 	"github.com/moby/buildkit/exporter"
 	"github.com/moby/buildkit/exporter/containerimage/exptypes"
@@ -13,6 +15,7 @@ import (
 	"github.com/moby/buildkit/exporter/util/epoch"
 	"github.com/moby/buildkit/session"
 	"github.com/moby/buildkit/session/filesync"
+	"github.com/moby/buildkit/util/compression"
 	"github.com/moby/buildkit/util/progress"
 	"github.com/pkg/errors"
 	"github.com/tonistiigi/fsutil"
@@ -41,12 +44,18 @@ func (e *localExporter) Resolve(ctx context.Context, opt map[string]string) (exp
 	}
 	_ = opt
 
+	li.copts, err = compression.ParseAttributes(opt)
+	if err != nil {
+		return nil, err
+	}
+
 	return li, nil
 }
 
 type localExporterInstance struct {
 	*localExporter
-	opts local.CreateFSOpts
+	opts  local.CreateFSOpts
+	copts compression.Config
 }
 
 func (e *localExporterInstance) Name() string {
@@ -156,19 +165,13 @@ func (e *localExporterInstance) Export(ctx context.Context, inp *exporter.Source
 		return nil, nil, err
 	}
 
-	comp := e.compression()
-	switch comp.Type {
-	case compression.Zstd:
-		w, err = zstdWriter(comp, w)
-		if err != nil {
-			return nil, err
-		}
-	case compression.Gzip:
-		w, err = gzipWriter(comp, w)
-		if err != nil {
-			return nil, err
-		}
+	comp, _ := e.copts.Type.Compress(ctx, e.copts)
+	wc, err := comp(w, "")
+	if err != nil {
+		w.Close()
+		return nil, nil, err
 	}
+	w = writerWithClosers(w, w, wc)
 
 	report := progress.OneOff(ctx, "sending tarball")
 	if err := fsutil.WriteTar(ctx, fs, w); err != nil {
@@ -193,4 +196,26 @@ func oneOffProgress(ctx context.Context, id string) func(err error) error {
 		pw.Close()
 		return err
 	}
+}
+
+func writerWithClosers(w io.Writer, closers ...io.Closer) io.WriteCloser {
+	return writeMultiCloser{
+		Writer:  w,
+		closers: closers,
+	}
+}
+
+// Implements io.Closer
+func (r writeMultiCloser) Close() (rerr error) {
+	for _, c := range r.closers {
+		if err := c.Close(); err != nil {
+			rerr = multierror.Append(rerr, err).ErrorOrNil()
+		}
+	}
+	return rerr
+}
+
+type writeMultiCloser struct {
+	io.Writer
+	closers []io.Closer
 }

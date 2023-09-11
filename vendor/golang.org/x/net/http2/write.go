@@ -75,7 +75,6 @@ type writeSettings []Setting
 func (s writeSettings) staysWithinBuffer(max int) bool {
 	const settingSize = 6 // uint16 + uint32
 	return frameHeaderLen+settingSize*len(s) <= max
-
 }
 
 func (s writeSettings) writeFrame(ctx writeContext) error {
@@ -189,7 +188,7 @@ type writeResHeaders struct {
 }
 
 func encKV(enc *hpack.Encoder, k, v string) {
-	if VerboseLogs {
+	if logFrameWrites {
 		log.Printf("http2: server encoding header %q = %q", k, v)
 	}
 	enc.WriteField(hpack.HeaderField{Name: k, Value: v})
