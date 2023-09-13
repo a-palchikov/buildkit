@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/base64"
 	"encoding/json"
-	"fmt"
 	"io"
 	"os"
 	"path/filepath"
@@ -126,25 +125,6 @@ func (c *Client) solve(ctx context.Context, def *llb.Definition, runGateway runG
 		return nil, err
 	}
 
-	type exporter struct {
-		ExportEntry
-		id string
-	}
-
-	var exporters []exporter
-	ids := make(map[string]int)
-	for _, exp := range opt.Exports {
-		if id, ok := ids[exp.Type]; !ok {
-			ids[exp.Type] = 1
-		} else {
-			ids[exp.Type] = id + 1
-		}
-		exporters = append(exporters, exporter{
-			ExportEntry: exp,
-			id:          fmt.Sprint(exp.Type, ids[exp.Type]),
-		})
-	}
-
 	storesToUpdate := []string{}
 
 	if !opt.SessionPreInitialized {
@@ -169,7 +149,7 @@ func (c *Client) solve(ctx context.Context, def *llb.Definition, runGateway runG
 		}
 
 		var syncTargets []filesync.FSSyncTarget
-		for _, ex := range exporters {
+		for exID, ex := range opt.Exports {
 			var supportFile bool
 			var supportDir bool
 			switch ex.Type {
@@ -194,7 +174,7 @@ func (c *Client) solve(ctx context.Context, def *llb.Definition, runGateway runG
 				if ex.Output == nil {
 					return nil, errors.Errorf("output file writer is required for %s exporter", ex.Type)
 				}
-				syncTargets = append(syncTargets, filesync.WithFSSync(ex.id, ex.Output))
+				syncTargets = append(syncTargets, filesync.WithFSSync(exID, ex.Output))
 			}
 			if supportDir {
 				if ex.OutputDir == "" {
@@ -212,7 +192,7 @@ func (c *Client) solve(ctx context.Context, def *llb.Definition, runGateway runG
 					contentStores["export"] = cs
 					storesToUpdate = append(storesToUpdate, ex.OutputDir)
 				default:
-					syncTargets = append(syncTargets, filesync.WithFSSyncDir(ex.id, ex.OutputDir))
+					syncTargets = append(syncTargets, filesync.WithFSSyncDir(exID, ex.OutputDir))
 				}
 			}
 		}
@@ -275,13 +255,12 @@ func (c *Client) solve(ctx context.Context, def *llb.Definition, runGateway runG
 		exports := make([]*controlapi.Exporter, 0, len(opt.Exports))
 		exportDeprecated := ""
 		exportAttrDeprecated := map[string]string{}
-		for i, exp := range exporters {
+		for i, exp := range opt.Exports {
 			if i == 0 {
 				exportDeprecated = exp.Type
 				exportAttrDeprecated = exp.Attrs
 			}
 			exports = append(exports, &controlapi.Exporter{
-				ID:    exp.id,
 				Type:  exp.Type,
 				Attrs: exp.Attrs,
 			})
