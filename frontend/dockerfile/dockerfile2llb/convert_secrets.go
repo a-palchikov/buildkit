@@ -39,7 +39,8 @@ func dispatchSecret(d *dispatchState, m *instructions.Mount, loc []parser.Range)
 	if !m.Required {
 		opts = append(opts, llb.SecretOptional)
 	}
-	if !m.Environ {
+	if m.Environ {
+		target = path.Base(id)
 		opts = append(opts, llb.SecretAsEnv(true))
 	}
 

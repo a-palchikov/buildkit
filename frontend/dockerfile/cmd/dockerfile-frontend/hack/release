@@ -2,7 +2,6 @@
 
 . $(dirname $0)/../../../../../hack/util
 set -eu
-set -o xtrace
 
 : "${RELEASE=false}"
 : "${PLATFORMS=}"
@@ -95,10 +94,11 @@ case $TYP in
     --build-arg "BUILDTAGS=$buildTags" \
     --output "type=image,name=$REPO:$pushTag,$pushFlag" \
     --file "./frontend/dockerfile/cmd/dockerfile-frontend/Dockerfile" \
+    --metadata-file md.json \
     $currentcontext
   ;;
 "tag")
-  publishedNames="localhost:5001/a-palchikov/dockerfile"
+  publishedNames=""
   parseTag $TAG
   tagf=./frontend/dockerfile/release/$TAG/tags
   if [ ! -f $tagf ]; then
@@ -112,6 +112,7 @@ case $TYP in
     --build-arg "BUILDTAGS=$buildTags" \
     --output "type=image,\"name=$publishedNames\",$pushFlag" \
     --file "./frontend/dockerfile/cmd/dockerfile-frontend/Dockerfile" \
+    --metadata-file md.json \
     $currentcontext
   ;;
 esac

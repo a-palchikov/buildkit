@@ -157,6 +157,7 @@ func parseMount(val string, expander SingleWordExpander) (*Mount, error) {
 				continue
 			case "env":
 				m.Environ = true
+				continue
 			case "required":
 				if m.Type == MountTypeSecret || m.Type == MountTypeSSH {
 					m.Required = true
@@ -255,9 +256,15 @@ func parseMount(val string, expander SingleWordExpander) (*Mount, error) {
 				return nil, errors.Errorf("invalid value %s for gid", value)
 			}
 			m.GID = &gid
+		case "env":
+			env, err := strconv.ParseBool(value)
+			if err != nil {
+				return nil, errors.Errorf("invalid value for %s: %s", key, value)
+			}
+			m.Environ = env
 		default:
 			allKeys := []string{
-				"type", "from", "source", "target", "readonly", "id", "sharing", "required", "mode", "uid", "gid", "src", "dst", "ro", "rw", "readwrite",
+				"type", "from", "source", "target", "readonly", "id", "sharing", "required", "mode", "uid", "gid", "src", "dst", "ro", "rw", "readwrite", "env",
 			}
 			return nil, suggest.WrapError(errors.Errorf("unexpected key '%s' in '%s'", key, field), key, allKeys, true)
 		}
