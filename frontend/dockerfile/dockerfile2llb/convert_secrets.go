@@ -39,6 +39,9 @@ func dispatchSecret(d *dispatchState, m *instructions.Mount, loc []parser.Range)
 	if !m.Required {
 		opts = append(opts, llb.SecretOptional)
 	}
+	if !m.Environ {
+		opts = append(opts, llb.SecretAsEnv(true))
+	}
 
 	if m.UID != nil || m.GID != nil || m.Mode != nil {
 		var uid, gid, mode int

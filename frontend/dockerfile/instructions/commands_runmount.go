@@ -122,6 +122,7 @@ type Mount struct {
 	CacheID      string
 	CacheSharing ShareMode
 	Required     bool
+	Environ      bool
 	Mode         *uint64
 	UID          *uint64
 	GID          *uint64
@@ -154,6 +155,8 @@ func parseMount(val string, expander SingleWordExpander) (*Mount, error) {
 				m.ReadOnly = false
 				roAuto = false
 				continue
+			case "env":
+				m.Environ = true
 			case "required":
 				if m.Type == MountTypeSecret || m.Type == MountTypeSSH {
 					m.Required = true
