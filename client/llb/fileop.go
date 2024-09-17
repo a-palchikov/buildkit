@@ -220,12 +220,26 @@ func (mi *MkdirInfo) SetMkdirOption(mi2 *MkdirInfo) {
 }
 
 func WithUser(name string) ChownOption {
+	var opt ChownOpt
+	uid, err := parseUID(name)
+	if err != nil {
+		opt.User = &UserOpt{Name: name}
+	} else {
+		opt.User = &UserOpt{UID: uid}
+	}
+	return opt
+}
+
+func ParseChownOption(name string) (ChownOption, error) {
 	opt := ChownOpt{}
 
 	parts := strings.SplitN(name, ":", 2)
 	for i, v := range parts {
 		switch i {
 		case 0:
+			if v == "" {
+				return nil, errors.New("invalid chown option: user is required")
+			}
 			uid, err := parseUID(v)
 			if err != nil {
 				opt.User = &UserOpt{Name: v}
@@ -233,6 +247,9 @@ func WithUser(name string) ChownOption {
 				opt.User = &UserOpt{UID: uid}
 			}
 		case 1:
+			if v == "" {
+				return nil, errors.New("invalid chown option: group is required")
+			}
 			gid, err := parseUID(v)
 			if err != nil {
 				opt.Group = &UserOpt{Name: v}
@@ -241,8 +258,7 @@ func WithUser(name string) ChownOption {
 			}
 		}
 	}
-
-	return opt
+	return opt, nil
 }
 
 func parseUID(str string) (int, error) {

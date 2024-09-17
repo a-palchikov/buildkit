@@ -1349,7 +1349,11 @@ func dispatchCopy(d *dispatchState, cfg copyConfig) error {
 	var copyOpt []llb.CopyOption
 
 	if cfg.chown != "" {
-		copyOpt = append(copyOpt, llb.WithUser(cfg.chown))
+		opt, err := llb.ParseChownOption(cfg.chown)
+		if err != nil {
+			return err
+		}
+		copyOpt = append(copyOpt, opt)
 	}
 
 	if len(cfg.excludePatterns) > 0 {
