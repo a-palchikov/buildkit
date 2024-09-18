@@ -587,6 +587,72 @@ func TestFileOwnerWithUIDAndGID(t *testing.T) {
 	require.Equal(t, 1001, int(mkdir.Owner.Group.User.(*pb.UserOpt_ByID).ByID))
 }
 
+func TestFileOwnerWithGroupOnly(t *testing.T) {
+	t.Parallel()
+
+	st := Image("foo").File(Mkdir("bar/baz", 0701, WithUser(":1001")))
+	def, err := st.Marshal(context.TODO())
+
+	require.NoError(t, err)
+
+	_, arr := parseDef(t, def.Def)
+
+	action := arr[1].Op.(*pb.Op_File).File.Actions[0]
+	mkdir := action.Action.(*pb.FileAction_Mkdir).Mkdir
+
+	require.Nil(t, mkdir.Owner.User)
+	require.Equal(t, 1001, int(mkdir.Owner.Group.User.(*pb.UserOpt_ByID).ByID))
+}
+
+func TestFileOwnerInvalidInput(t *testing.T) {
+	t.Parallel()
+
+	var testCases = []struct {
+		name      string
+		user      string
+		expected  ChownOpt
+		assertErr require.ErrorAssertionFunc
+	}{
+		{
+			name:      "invalid user: empty",
+			user:      "",
+			assertErr: assertErrorMessage("invalid chown option: user is required"),
+		},
+		{
+			name:      "invalid group: empty",
+			user:      "user:",
+			expected:  ChownOpt{User: &UserOpt{Name: "user"}},
+			assertErr: assertErrorMessage("invalid chown option: group is required"),
+		},
+		{
+			name:      "invalid user_group: empty",
+			user:      ":",
+			assertErr: assertErrorMessage("invalid chown option: group is required"),
+		},
+		{
+			name:      "alphanumeric user name",
+			user:      "1001user",
+			expected:  ChownOpt{User: &UserOpt{Name: "1001user"}},
+			assertErr: require.NoError,
+		},
+		{
+			name:      "just group name",
+			user:      ":1001",
+			expected:  ChownOpt{Group: &UserOpt{UID: 1001}},
+			assertErr: require.NoError,
+		},
+	}
+	for _, tc := range testCases {
+		tc := tc // TODO: remove in go1.22
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+			opt, err := ParseChownOption(tc.user)
+			tc.assertErr(t, err)
+			require.Equal(t, tc.expected, opt)
+		})
+	}
+}
+
 func TestFileCopyOwner(t *testing.T) {
 	t.Parallel()
 
@@ -735,5 +801,11 @@ func TestFileOpMarshalConsistency(t *testing.T) {
 		}
 
 		prevDef = def.Def
+	}
+}
+
+func assertErrorMessage(m string) require.ErrorAssertionFunc {
+	return func(t require.TestingT, err error, args ...any) {
+		require.EqualError(t, err, m)
 	}
 }

@@ -220,25 +220,26 @@ func (mi *MkdirInfo) SetMkdirOption(mi2 *MkdirInfo) {
 }
 
 func WithUser(name string) ChownOption {
-	var opt ChownOpt
-	uid, err := parseUID(name)
-	if err != nil {
-		opt.User = &UserOpt{Name: name}
-	} else {
-		opt.User = &UserOpt{UID: uid}
-	}
+	opt, _ := ParseChownOption(name)
 	return opt
 }
 
-func ParseChownOption(name string) (ChownOption, error) {
-	opt := ChownOpt{}
-
+// ParseChownOption parses the given name as owner[:group] or :group.
+// Both owner and group operands are optional however one must be provided. If the group
+// operand is specified, it must be preceeded by a colon (`:`).
+// The owner may be either a user name or a numeric ID.
+// The group may be either a group name or a numeric ID.
+// Returns an error if either owner or group is empty
+func ParseChownOption(name string) (opt ChownOpt, err error) {
 	parts := strings.SplitN(name, ":", 2)
 	for i, v := range parts {
 		switch i {
 		case 0:
+			if len(parts) == 1 && v == "" {
+				return opt, errors.New("invalid chown option: user is required")
+			}
 			if v == "" {
-				return nil, errors.New("invalid chown option: user is required")
+				continue
 			}
 			uid, err := parseUID(v)
 			if err != nil {
@@ -248,7 +249,7 @@ func ParseChownOption(name string) (ChownOption, error) {
 			}
 		case 1:
 			if v == "" {
-				return nil, errors.New("invalid chown option: group is required")
+				return opt, errors.New("invalid chown option: group is required")
 			}
 			gid, err := parseUID(v)
 			if err != nil {
