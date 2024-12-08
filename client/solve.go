@@ -7,6 +7,7 @@ import (
 	"io"
 	"maps"
 	"os"
+	"strconv"
 	"strings"
 	"time"
 
@@ -130,7 +131,8 @@ func (c *Client) solve(ctx context.Context, def *llb.Definition, runGateway runG
 		return nil, err
 	}
 
-	storesToUpdate := []string{}
+	// maps image exporter id -> store path
+	storesToUpdate := make(map[string]ociStore)
 
 	if !opt.SessionPreInitialized {
 		if len(syncedDirs) > 0 {
@@ -195,7 +197,7 @@ func (c *Client) solve(ctx context.Context, def *llb.Definition, runGateway runG
 						return nil, err
 					}
 					contentStores["export"] = cs
-					storesToUpdate = append(storesToUpdate, ex.OutputDir)
+					storesToUpdate[strconv.Itoa(exID)] = ociStore{path: ex.OutputDir}
 				default:
 					syncTargets = append(syncTargets, filesync.WithFSSyncDir(exID, ex.OutputDir))
 				}
@@ -260,6 +262,8 @@ func (c *Client) solve(ctx context.Context, def *llb.Definition, runGateway runG
 				exportDeprecated = exp.Type
 				exportAttrDeprecated = exp.Attrs
 			}
+			// FIXME(dima): make this a dedicated attribute on the Exporter
+			exp.Attrs[exptypes.ClientKeyID] = strconv.Itoa(i)
 			exports = append(exports, &controlapi.Exporter{
 				Type:  exp.Type,
 				Attrs: exp.Attrs,
@@ -350,27 +354,54 @@ func (c *Client) solve(ctx context.Context, def *llb.Definition, runGateway runG
 			}
 		}
 	}
-	if manifestDescDt := res.ExporterResponse[exptypes.ExporterImageDescriptorKey]; manifestDescDt != "" {
-		manifestDescDt, err := base64.StdEncoding.DecodeString(manifestDescDt)
+
+	if len(storesToUpdate) == 0 {
+		return res, nil
+	}
+	for id, store := range storesToUpdate {
+		manifestDesc, err := getManifestDescriptor(id, res.ExporterResponse)
 		if err != nil {
 			return nil, err
 		}
-		var manifestDesc ocispecs.Descriptor
-		if err = json.Unmarshal([]byte(manifestDescDt), &manifestDesc); err != nil {
-			return nil, err
+		if manifestDesc == nil {
+			continue
 		}
-		for _, storePath := range storesToUpdate {
-			tag := "latest"
-			if t, ok := res.ExporterResponse["image.name"]; ok {
-				tag = t
-			}
-			idx := ociindex.NewStoreIndex(storePath)
-			if err := idx.Put(tag, manifestDesc); err != nil {
-				return nil, err
-			}
+		tag := "latest"
+		if t, ok := res.ExporterResponse["image.name"]; ok {
+			tag = t
+		}
+		idx := ociindex.NewStoreIndex(store.path)
+		if err := idx.Put(tag, *manifestDesc); err != nil {
+			return nil, err
 		}
 	}
 	return res, nil
+}
+
+func getManifestDescriptor(exporterID string, resp map[string]string) (*ocispecs.Descriptor, error) {
+	if manifestDescDt := resp[exptypes.FormatImageDescriptorKey(exporterID)]; manifestDescDt != "" {
+		return unmarshalManifestDescriptor(manifestDescDt)
+	}
+	if manifestDescDt := resp[exptypes.ExporterImageDescriptorKey]; manifestDescDt != "" {
+		return unmarshalManifestDescriptor(manifestDescDt)
+	}
+	return nil, nil
+}
+
+func unmarshalManifestDescriptor(manifestDesc string) (*ocispecs.Descriptor, error) {
+	manifestDescDt, err := base64.StdEncoding.DecodeString(manifestDesc)
+	if err != nil {
+		return nil, err
+	}
+	var desc ocispecs.Descriptor
+	if err = json.Unmarshal([]byte(manifestDescDt), &desc); err != nil {
+		return nil, err
+	}
+	return &desc, nil
+}
+
+type ociStore struct {
+	path string
 }
 
 func prepareSyncedFiles(def *llb.Definition, localMounts map[string]fsutil.FS) (filesync.StaticDirSource, error) {

@@ -60,10 +60,9 @@ func New(opt Opt) (exporter.Exporter, error) {
 	return im, nil
 }
 
-func (e *imageExporter) Resolve(ctx context.Context, id int, opt map[string]string) (exporter.ExporterInstance, error) {
+func (e *imageExporter) Resolve(ctx context.Context, opt map[string]string) (exporter.ExporterInstance, error) {
 	i := &imageExporterInstance{
 		imageExporter: e,
-		id:            id,
 		attrs:         opt,
 		tar:           true,
 		opts: containerimage.ImageCommitOpts{
@@ -81,6 +80,8 @@ func (e *imageExporter) Resolve(ctx context.Context, id int, opt map[string]stri
 
 	for k, v := range opt {
 		switch k {
+		case exptypes.ClientKeyID:
+			i.id = v
 		case keyTar:
 			if v == "" {
 				i.tar = true
@@ -103,16 +104,12 @@ func (e *imageExporter) Resolve(ctx context.Context, id int, opt map[string]stri
 
 type imageExporterInstance struct {
 	*imageExporter
-	id    int
+	id    string
 	attrs map[string]string
 
 	opts containerimage.ImageCommitOpts
 	tar  bool
 	meta map[string][]byte
-}
-
-func (e *imageExporterInstance) ID() int {
-	return e.id
 }
 
 func (e *imageExporterInstance) Name() string {
@@ -192,7 +189,7 @@ func (e *imageExporterInstance) Export(ctx context.Context, src *exporter.Source
 	if err != nil {
 		return nil, nil, err
 	}
-	resp[exptypes.ExporterImageDescriptorKey] = base64.StdEncoding.EncodeToString(dtdesc)
+	resp[exptypes.FormatImageDescriptorKey(e.id)] = base64.StdEncoding.EncodeToString(dtdesc)
 
 	if n, ok := src.Metadata["image.name"]; e.opts.ImageName == "*" && ok {
 		e.opts.ImageName = string(n)

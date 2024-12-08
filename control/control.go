@@ -400,13 +400,13 @@ func (c *Controller) Solve(ctx context.Context, req *controlapi.SolveRequest) (*
 	}
 
 	var expis []exporter.ExporterInstance
-	for i, ex := range req.Exporters {
+	for _, ex := range req.Exporters {
 		exp, err := w.Exporter(ex.Type, c.opt.SessionManager)
 		if err != nil {
 			return nil, err
 		}
 		bklog.G(ctx).Debugf("resolve exporter %s with %v", ex.Type, ex.Attrs)
-		expi, err := exp.Resolve(ctx, i, ex.Attrs)
+		expi, err := exp.Resolve(ctx, ex.Attrs)
 		if err != nil {
 			return nil, err
 		}

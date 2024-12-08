@@ -36,9 +36,8 @@ func New(opt Opt) (exporter.Exporter, error) {
 	return le, nil
 }
 
-func (e *localExporter) Resolve(ctx context.Context, id int, opt map[string]string) (exporter.ExporterInstance, error) {
+func (e *localExporter) Resolve(ctx context.Context, opt map[string]string) (exporter.ExporterInstance, error) {
 	i := &localExporterInstance{
-		id:            id,
 		attrs:         opt,
 		localExporter: e,
 	}
@@ -47,19 +46,19 @@ func (e *localExporter) Resolve(ctx context.Context, id int, opt map[string]stri
 		return nil, err
 	}
 
+	if id, ok := opt[exptypes.ClientKeyID]; ok {
+		i.id = id
+	}
+
 	return i, nil
 }
 
 type localExporterInstance struct {
 	*localExporter
-	id    int
+	id    string
 	attrs map[string]string
 
 	opts CreateFSOpts
-}
-
-func (e *localExporterInstance) ID() int {
-	return e.id
 }
 
 func (e *localExporterInstance) Name() string {

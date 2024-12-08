@@ -1,6 +1,10 @@
 package exptypes
 
-import commonexptypes "github.com/moby/buildkit/exporter/exptypes"
+import (
+	"fmt"
+
+	commonexptypes "github.com/moby/buildkit/exporter/exptypes"
+)
 
 type ImageExporterOptKey string
 
@@ -77,3 +81,12 @@ var (
 	// Value: bool <true|false>
 	OptKeyRewriteTimestamp ImageExporterOptKey = "rewrite-timestamp"
 )
+
+const (
+	// ClientKeyID optionally identifies the exporter
+	ClientKeyID = "__clientid"
+)
+
+func FormatImageDescriptorKey(id string) string {
+	return fmt.Sprint(ExporterImageDescriptorKey, "-", id)
+}
