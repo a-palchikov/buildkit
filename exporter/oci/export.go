@@ -60,9 +60,10 @@ func New(opt Opt) (exporter.Exporter, error) {
 	return im, nil
 }
 
-func (e *imageExporter) Resolve(ctx context.Context, opt map[string]string) (exporter.ExporterInstance, error) {
+func (e *imageExporter) Resolve(ctx context.Context, id string, opt map[string]string) (exporter.ExporterInstance, error) {
 	i := &imageExporterInstance{
 		imageExporter: e,
+		id:            id,
 		attrs:         opt,
 		tar:           true,
 		opts: containerimage.ImageCommitOpts{
@@ -80,8 +81,6 @@ func (e *imageExporter) Resolve(ctx context.Context, opt map[string]string) (exp
 
 	for k, v := range opt {
 		switch k {
-		case exptypes.ClientKeyID:
-			i.id = v
 		case keyTar:
 			if v == "" {
 				i.tar = true
@@ -189,7 +188,11 @@ func (e *imageExporterInstance) Export(ctx context.Context, src *exporter.Source
 	if err != nil {
 		return nil, nil, err
 	}
-	resp[exptypes.FormatImageDescriptorKey(e.id)] = base64.StdEncoding.EncodeToString(dtdesc)
+
+	resp[exptypes.FormatWithID(exptypes.ExporterImageDescriptorKey, e.id)] = base64.StdEncoding.EncodeToString(dtdesc)
+	// Keep the image descriptor im unqualified key for backwards compatibility
+	// with clients that do not send an explicit exporter ID
+	resp[exptypes.ExporterImageDescriptorKey] = base64.StdEncoding.EncodeToString(dtdesc)
 
 	if n, ok := src.Metadata["image.name"]; e.opts.ImageName == "*" && ok {
 		e.opts.ImageName = string(n)

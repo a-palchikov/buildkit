@@ -36,18 +36,15 @@ func New(opt Opt) (exporter.Exporter, error) {
 	return le, nil
 }
 
-func (e *localExporter) Resolve(ctx context.Context, opt map[string]string) (exporter.ExporterInstance, error) {
+func (e *localExporter) Resolve(ctx context.Context, id string, opt map[string]string) (exporter.ExporterInstance, error) {
 	i := &localExporterInstance{
+		id:            id,
 		attrs:         opt,
 		localExporter: e,
 	}
 	_, err := i.opts.Load(opt)
 	if err != nil {
 		return nil, err
-	}
-
-	if id, ok := opt[exptypes.ClientKeyID]; ok {
-		i.id = id
 	}
 
 	return i, nil

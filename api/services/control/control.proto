@@ -245,4 +245,7 @@ message Exporter {
 	string Type = 1;
 	// Attrs specifies exporter configuration
 	map<string, string> Attrs = 2;
+	// ID identifies this exporter.
+	// ID should be treated by the exporter as opaque.
+	string ID = 3;
 }

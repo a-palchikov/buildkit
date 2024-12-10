@@ -82,11 +82,6 @@ var (
 	OptKeyRewriteTimestamp ImageExporterOptKey = "rewrite-timestamp"
 )
 
-const (
-	// ClientKeyID optionally identifies the exporter
-	ClientKeyID = "__clientid"
-)
-
-func FormatImageDescriptorKey(id string) string {
-	return fmt.Sprint(ExporterImageDescriptorKey, "-", id)
+func FormatWithID(key, id string) string {
+	return fmt.Sprint(key, "-", id)
 }

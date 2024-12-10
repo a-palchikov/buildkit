@@ -66,9 +66,10 @@ func New(opt Opt) (exporter.Exporter, error) {
 	return im, nil
 }
 
-func (e *imageExporter) Resolve(ctx context.Context, opt map[string]string) (exporter.ExporterInstance, error) {
+func (e *imageExporter) Resolve(ctx context.Context, id string, opt map[string]string) (exporter.ExporterInstance, error) {
 	i := &imageExporterInstance{
 		imageExporter: e,
+		id:            id,
 		attrs:         opt,
 		opts: ImageCommitOpts{
 			RefCfg: cacheconfig.RefConfig{
@@ -86,8 +87,6 @@ func (e *imageExporter) Resolve(ctx context.Context, opt map[string]string) (exp
 
 	for k, v := range opt {
 		switch exptypes.ImageExporterOptKey(k) {
-		case exptypes.ClientKeyID:
-			i.id = v
 		case exptypes.OptKeyPush:
 			if v == "" {
 				i.push = true
@@ -354,7 +353,11 @@ func (e *imageExporterInstance) Export(ctx context.Context, src *exporter.Source
 	if err != nil {
 		return nil, nil, err
 	}
-	resp[exptypes.FormatImageDescriptorKey(e.id)] = base64.StdEncoding.EncodeToString(dtdesc)
+
+	resp[exptypes.FormatWithID(exptypes.ExporterImageDescriptorKey, e.id)] = base64.StdEncoding.EncodeToString(dtdesc)
+	// Keep the image descriptor in the unqualified key for backwards compatibility
+	// with clients that do not explicitly set exporter IDs
+	resp[exptypes.ExporterImageDescriptorKey] = base64.StdEncoding.EncodeToString(dtdesc)
 
 	return resp, nil, nil
 }
