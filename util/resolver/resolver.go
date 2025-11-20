@@ -155,6 +155,17 @@ func NewRegistryConfig(m map[string]config.RegistryConfig) docker.RegistryHosts 
 				Capabilities: docker.HostCapabilityPush | docker.HostCapabilityPull | docker.HostCapabilityResolve,
 			}
 
+			if c.AWS != nil {
+				h.Authorizer, err = newAWSAuthorizer(c.AWS)
+			} else if c.GCP != nil {
+				h.Authorizer, err = newGCPAuthorizer(c.GCP)
+			} else if c.Azure != nil {
+				h.Authorizer, err = newAzureAuthorizer(c.Azure)
+			}
+			if err != nil {
+				return nil, err
+			}
+
 			hosts, err := fillInsecureOpts(host, c, h)
 			if err != nil {
 				return nil, err

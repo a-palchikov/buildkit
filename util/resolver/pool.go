@@ -204,7 +204,9 @@ func (r *Resolver) HostsFunc(host string) ([]docker.RegistryHost, error) {
 		copy(res, v)
 		auth := newDockerAuthorizer(res[0].Client, r.handler, r.sm, r.g)
 		for i := range res {
-			res[i].Authorizer = auth
+			if res[i].Authorizer == nil {
+				res[i].Authorizer = auth
+			}
 		}
 		return res, nil
 	}(host)
