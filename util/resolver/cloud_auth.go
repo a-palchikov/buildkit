@@ -5,19 +5,29 @@ import (
 	"encoding/base64"
 	"fmt"
 	"net/http"
+	"os"
 	"strings"
+	"sync"
+	"time"
 
 	"github.com/Azure/azure-sdk-for-go/sdk/azcore"
 	"github.com/Azure/azure-sdk-for-go/sdk/azcore/policy"
 	"github.com/Azure/azure-sdk-for-go/sdk/azidentity"
+	"github.com/aws/aws-sdk-go-v2/aws"
 	awsconfig "github.com/aws/aws-sdk-go-v2/config"
+	"github.com/aws/aws-sdk-go-v2/credentials/stscreds"
 	"github.com/aws/aws-sdk-go-v2/service/ecr"
+	"github.com/aws/aws-sdk-go-v2/service/ecr/types"
+	"github.com/aws/aws-sdk-go-v2/service/sts"
 	"github.com/containerd/containerd/v2/core/remotes/docker"
 	"github.com/containerd/errdefs"
-	"github.com/moby/buildkit/util/resolver/config"
 	"github.com/pkg/errors"
 	"golang.org/x/oauth2"
 	"golang.org/x/oauth2/google"
+
+	log "github.com/moby/buildkit/util/bklog"
+	"github.com/moby/buildkit/util/flightcontrol"
+	"github.com/moby/buildkit/util/resolver/config"
 )
 
 func newAWSAuthorizer(c *config.AWSCreds) (docker.Authorizer, error) {
@@ -25,12 +35,46 @@ func newAWSAuthorizer(c *config.AWSCreds) (docker.Authorizer, error) {
 }
 
 type awsAuthorizer struct {
-	// TODO(dima): cache the token for reuse
 	config *config.AWSCreds
+	g      flightcontrol.Group[*cachedToken]
+	// mu protects fields below
+	mu    sync.RWMutex
+	token *cachedToken
 }
 
 // Authorize authorizes the given request for AWS ECR.
 func (r *awsAuthorizer) Authorize(ctx context.Context, req *http.Request) error {
+	r.mu.RLock()
+	if r.hasValidToken() {
+		req.SetBasicAuth(r.token.username, r.token.password)
+		r.mu.RUnlock()
+		return nil
+	}
+	r.mu.RUnlock()
+
+	token, err := r.g.Do(ctx, "ecr-token", func(ctx context.Context) (*cachedToken, error) {
+		r.mu.RLock()
+		if r.hasValidToken() {
+			token := r.token
+			r.mu.RUnlock()
+			return token, nil
+		}
+		r.mu.RUnlock()
+		return r.fetchToken(ctx)
+	})
+	if err != nil {
+		return fmt.Errorf("fetching ECR token: %w", err)
+	}
+
+	r.mu.Lock()
+	r.token = token
+	r.mu.Unlock()
+
+	req.SetBasicAuth(token.username, token.password)
+	return nil
+}
+
+func (r *awsAuthorizer) fetchToken(ctx context.Context) (*cachedToken, error) {
 	opts := []func(*awsconfig.LoadOptions) error{}
 	if r.config.Region != nil {
 		opts = append(opts, awsconfig.WithRegion(*r.config.Region))
@@ -38,32 +82,64 @@ func (r *awsAuthorizer) Authorize(ctx context.Context, req *http.Request) error 
 
 	cfg, err := awsconfig.LoadDefaultConfig(ctx, opts...)
 	if err != nil {
-		return fmt.Errorf("loading aws config: %w", err)
+		return nil, fmt.Errorf("loading aws config: %w", err)
+	}
+
+	if aws.ToString(r.config.RoleArn) != "" {
+		r.assumeRole(&cfg)
+	}
+
+	if tokenFile := os.Getenv("AWS_WEB_IDENTITY_TOKEN_FILE"); tokenFile != "" {
+		log.G(ctx).Debug("Using irsa/pod identity auth")
 	}
 
 	client := ecr.NewFromConfig(cfg)
 	out, err := client.GetAuthorizationToken(ctx, &ecr.GetAuthorizationTokenInput{})
 	if err != nil {
-		return fmt.Errorf("getting ecr authorization token: %w", err)
+		return nil, fmt.Errorf("getting ecr authorization token: %w", err)
 	}
 
 	if len(out.AuthorizationData) == 0 {
-		return errors.New("no authorization data returned from ecr")
+		return nil, errors.New("no authorization data returned from ecr")
 	}
-
 	authData := out.AuthorizationData[0]
-	token, err := base64.StdEncoding.DecodeString(*authData.AuthorizationToken)
+	encodedToken := aws.ToString(authData.AuthorizationToken)
+	if encodedToken == "" {
+		return nil, errors.New("invalid empty encoded token")
+	}
+
+	token, err := tokenFromAuthData(authData)
 	if err != nil {
-		return fmt.Errorf("decoding authorization token: %w", err)
+		return nil, err
 	}
+	token.expiresAt = aws.ToTime(authData.ExpiresAt)
 
-	parts := strings.SplitN(string(token), ":", 2)
-	if len(parts) != 2 {
-		return errors.New("invalid authorization token format, expected username:password")
+	return token, nil
+}
+
+// hasValidToken determines if the cached token is still valid.
+// Assumes that r.mu is held
+func (r *awsAuthorizer) hasValidToken() bool {
+	return r.token != nil && !r.token.expiresAt.IsZero() && time.Now().Before(r.token.expiresAt)
+}
+
+func (r *awsAuthorizer) assumeRole(cfg *aws.Config) {
+	stsClient := sts.NewFromConfig(*cfg)
+	provider := stscreds.NewAssumeRoleProvider(stsClient, *r.config.RoleArn, func(aro *stscreds.AssumeRoleOptions) {
+		if r.config.ExternalID != nil {
+			aro.ExternalID = r.config.ExternalID
+		}
+		aro.RoleSessionName = "buildkit-ecr-auth"
+		if r.config.SessionName != nil {
+			aro.RoleSessionName = *r.config.SessionName
+		}
+		aro.Duration = r.config.Duration
+	})
+	cfg.Credentials = aws.NewCredentialsCache(provider)
+	if r.config.Region != nil {
+		// Reset region if specified
+		cfg.Region = *r.config.Region
 	}
-
-	req.SetBasicAuth(parts[0], parts[1])
-	return nil
 }
 
 func newGCPAuthorizer(c *config.GCPCreds) (docker.Authorizer, error) {
@@ -170,4 +246,22 @@ func (*awsAuthorizer) AddResponses(ctx context.Context, responses []*http.Respon
 
 func (*gcpAuthorizer) AddResponses(ctx context.Context, responses []*http.Response) error {
 	return errdefs.ErrNotImplemented
+}
+
+func tokenFromAuthData(authData types.AuthorizationData) (*cachedToken, error) {
+	authToken, err := base64.StdEncoding.DecodeString(*authData.AuthorizationToken)
+	if err != nil {
+		return nil, fmt.Errorf("decoding authorization token: %w", err)
+	}
+	parts := strings.SplitN(string(authToken), ":", 2)
+	if len(parts) != 2 {
+		return nil, errors.New("invalid authorization token format, expected username:password")
+	}
+	return &cachedToken{username: parts[0], password: parts[1]}, nil
+}
+
+type cachedToken struct {
+	username  string
+	password  string
+	expiresAt time.Time
 }

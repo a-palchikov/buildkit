@@ -1,5 +1,7 @@
 package config
 
+import "time"
+
 type RegistryConfig struct {
 	Mirrors      []string     `toml:"mirrors"`
 	PlainHTTP    *bool        `toml:"http"`
@@ -24,9 +26,21 @@ type AWSCreds struct {
 	// If unspecified, use the default SDK's behavior.
 	RoleArn *string `toml:"assume-role-arn,omitempty"`
 
+	// ExternalID is an optional security token used when assuming a role.
+	// Required when the trust policy for RoleArn includes a sts:ExternalId condition.
+	// See: https://docs.aws.amazon.com/IAM/latest/UserGuide/confused-deputy.html
+	ExternalID *string `toml:"external-id,omitempty"`
+
 	// Region is the optional target ECR region.
 	// Can be extracted from the registry host pattern (*.{region}.amazonaws.com)
 	Region *string `toml:"region,omitempty"`
+
+	// SessionName is an optional identifier for the assumed role session.
+	// Useful for CloudTrail auditing.
+	SessionName *string `toml:"session-name,omitempty"`
+
+	// Duration optionally limits the STS credentials.
+	Duration time.Duration `toml:"duration,omitzero"`
 }
 
 // GCPCreds defines the credential configuration for GCP AR

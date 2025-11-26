@@ -3,6 +3,7 @@ package resolver
 import (
 	"crypto/tls"
 	"crypto/x509"
+	"fmt"
 	"net"
 	"net/http"
 	"os"
@@ -155,6 +156,7 @@ func NewRegistryConfig(m map[string]config.RegistryConfig) docker.RegistryHosts 
 				Capabilities: docker.HostCapabilityPush | docker.HostCapabilityPull | docker.HostCapabilityResolve,
 			}
 
+			var err error
 			if c.AWS != nil {
 				h.Authorizer, err = newAWSAuthorizer(c.AWS)
 			} else if c.GCP != nil {
@@ -163,7 +165,7 @@ func NewRegistryConfig(m map[string]config.RegistryConfig) docker.RegistryHosts 
 				h.Authorizer, err = newAzureAuthorizer(c.Azure)
 			}
 			if err != nil {
-				return nil, err
+				return nil, fmt.Errorf("creating authorizer: %w", err)
 			}
 
 			hosts, err := fillInsecureOpts(host, c, h)
