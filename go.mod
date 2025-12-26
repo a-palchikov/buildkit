@@ -17,6 +17,7 @@ require (
 	github.com/aws/aws-sdk-go-v2/feature/s3/manager v1.17.10
 	github.com/aws/aws-sdk-go-v2/service/ecr v1.53.1
 	github.com/aws/aws-sdk-go-v2/service/s3 v1.89.1
+	github.com/aws/aws-sdk-go-v2/service/sts v1.40.2
 	github.com/cespare/xxhash/v2 v2.3.0
 	github.com/containerd/accelerated-container-image v1.3.0
 	github.com/containerd/console v1.0.5
@@ -118,8 +119,8 @@ require (
 )
 
 require (
-	cyphar.com/go-pathrs v0.2.1 // indirect
 	cloud.google.com/go/compute/metadata v0.9.0 // indirect
+	cyphar.com/go-pathrs v0.2.1 // indirect
 	github.com/Azure/azure-sdk-for-go/sdk/internal v1.11.2 // indirect
 	github.com/AzureAD/microsoft-authentication-library-for-go v1.6.0 // indirect
 	github.com/anchore/go-struct-converter v0.1.0 // indirect
@@ -136,7 +137,6 @@ require (
 	github.com/aws/aws-sdk-go-v2/service/internal/s3shared v1.19.12 // indirect
 	github.com/aws/aws-sdk-go-v2/service/sso v1.30.3 // indirect
 	github.com/aws/aws-sdk-go-v2/service/ssooidc v1.35.7 // indirect
-	github.com/aws/aws-sdk-go-v2/service/sts v1.40.2 // indirect
 	github.com/aws/smithy-go v1.23.2 // indirect
 	github.com/beorn7/perks v1.0.1 // indirect
 	github.com/blang/semver v3.5.1+incompatible // indirect

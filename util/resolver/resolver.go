@@ -18,6 +18,8 @@ import (
 	"github.com/containerd/containerd/v2/core/remotes/docker"
 	"github.com/pkg/errors"
 
+	"github.com/moby/buildkit/util/resolver/cloudauth/aws"
+	"github.com/moby/buildkit/util/resolver/cloudauth/gcp"
 	"github.com/moby/buildkit/util/resolver/config"
 	"github.com/moby/buildkit/util/tracing"
 )
@@ -158,9 +160,9 @@ func NewRegistryConfig(m map[string]config.RegistryConfig) docker.RegistryHosts 
 
 			var err error
 			if c.AWS != nil {
-				h.Authorizer, err = newAWSAuthorizer(c.AWS)
+				h.Authorizer = aws.New(c.AWS)
 			} else if c.GCP != nil {
-				h.Authorizer, err = newGCPAuthorizer(c.GCP)
+				h.Authorizer = gcp.New(c.GCP)
 			} else if c.Azure != nil {
 				h.Authorizer, err = newAzureAuthorizer(c.Azure)
 			}
